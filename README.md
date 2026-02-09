@@ -190,8 +190,11 @@ doi:10.1057/s41288-025-00367-y
 
 MIT License.
 
+
 ---
 
 ## 9. Contact
 
 For questions, collaborations, or extensions (multi‑agent systems, forecasting, insurance supervision), feel free to open an issue or contact the author.
+
+## Test modification by Emma Blindauer
