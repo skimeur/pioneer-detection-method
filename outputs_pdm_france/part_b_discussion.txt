@@ -1,0 +1,16 @@
+Part B discussion
+=================
+
+Target country: FR (France)
+
+Best overall RMSE in this implementation: Median pooling (0.8672).
+
+Interpretation caveat
+--------------------
+A low RMSE here does not prove that a method is a good structural forecasting model. The exercise uses contemporaneous weighted combinations of other countries' inflation rates, not a full causal forecasting design with real-time information constraints.
+
+Why the analogy is limited
+- The PDM was designed to detect pioneers and accelerate collective learning under structural change.
+- A good fit may simply reflect common euro-area shocks rather than genuine predictive content for France.
+- Constant-weight benchmark methods can perform well if comovement dominates true lead-lag effects.
+- Results are sample-dependent and may differ under another target country, horizon, lag choice, or rolling specification.
