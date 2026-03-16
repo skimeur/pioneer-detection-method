@@ -15,6 +15,8 @@ https://dx.doi.org/10.2139/ssrn.5012810
 The repository includes:
 - `pdm.py` – implementation of the methods
 - `pdm_demo.py` – complete synthetic example with plots  
+- `ecb_hicp_panel_var_granger.py` – inflation panel construction with ADF, Granger, and VAR
+- `ecb_hicp_panel_pioneer_extension.py` – Pioneer Detection extension for the inflation panel
 - `paper.pdf` – full published article  
 - `slides.pdf` – presentation slides summarizing the method  
 
@@ -111,6 +113,20 @@ pip install pandas numpy matplotlib statsmodels
 ```
 
 `statsmodels` is required for Granger Causality and Multivariate Regression methods. The PDM variants, Lagged Correlation, Transfer Entropy, and traditional benchmarks only need `pandas` and `numpy`.
+
+For the inflation-panel teaching workflow, the scripts also use `requests`, and
+`openpyxl` is recommended so pandas can read the official NBU Excel fallback
+when the SSSU API is temporarily unavailable.
+
+Run the Pioneer Detection inflation extension with:
+
+```bash
+MPLBACKEND=Agg python ecb_hicp_panel_pioneer_extension.py
+```
+
+The extension is reproducible as written: it uses a fixed sample window and a
+single string switch (`TARGET_PROFILE`) to alternate between the France and
+Ukraine versions of the exercise.
 
 ### Using the Pioneer Detection Method
 
