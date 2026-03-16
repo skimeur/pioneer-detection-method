@@ -188,23 +188,6 @@ def fetch_ecb_hicp_inflation_panel(
     return panel, raw
 
 
-# -------------------------
-# Example usage
-# -------------------------
-countries = ["DE", "FR", "IT", "ES", "NL", "BE", "AT", "PT", "IE", "FI", "GR"]
-
-def _fetch_ecb():
-    panel, _ = fetch_ecb_hicp_inflation_panel(
-        countries=countries, start="2000-01", end="2025-12"
-    )
-    return panel
-
-infl_panel = fetch_or_fallback(_fetch_ecb, "data_ecb_hicp_panel.csv", index_col=0)
-
-
-# -----------------------------------
-# Fetch Ukraine inflation time series
-
 def fetch_ukraine_cpi_prev_month_raw(
     start="2000-01",
     end="2025-12",
@@ -292,133 +275,179 @@ def ua_raw_to_monthly_series(ua_raw: pd.DataFrame) -> pd.Series:
 
     return out
 
-# Build the monthly series (prev month = 100)
-ua_idx = ua_raw_to_monthly_series(ua_raw)
 
-# Optional: restrict window (month-start)
-ua_idx = ua_idx.loc["2000-01-01":"2025-12-01"]
-
-# If you still need y/y inflation (%):
 def cpi_prev_month_index_to_yoy_inflation(idx_prev_month_100: pd.Series) -> pd.Series:
     monthly_factor = (idx_prev_month_100 / 100.0).astype(float)
     yoy_factor = monthly_factor.rolling(12).apply(np.prod, raw=True)
     return ((yoy_factor - 1.0) * 100.0).rename("UA")
 
-ua_yoy = cpi_prev_month_index_to_yoy_inflation(ua_idx)
 
-# Ensure month-start indices match
-infl_panel = infl_panel.copy()
-infl_panel.index = pd.to_datetime(infl_panel.index).to_period("M").to_timestamp(how="start")
-ua_yoy.index = pd.to_datetime(ua_yoy.index).to_period("M").to_timestamp(how="start")
+def build_inflation_panel(countries=None, start="2000-01", end="2025-12"):
+    """
+    Build the full inflation panel (ECB HICP + Ukraine CPI).
+    Returns a wide DataFrame with month-start index, columns = country codes.
+    """
+    if countries is None:
+        countries = ["DE", "FR", "IT", "ES", "NL", "BE", "AT", "PT", "IE", "FI", "GR"]
 
-infl_panel = infl_panel.join(ua_yoy, how="left")
-
-
-# ------------------------------------------------------------
-# Plot the inflation panel (one line per country)
-# Assumes `infl_panel` is the wide DataFrame returned above:
-#   index   = datetime (monthly)
-#   columns = country codes
-# ------------------------------------------------------------
-
-plt.figure(figsize=(12, 6))
-
-for country in infl_panel.columns:
-    plt.plot(infl_panel.index, infl_panel[country], label=country, linewidth=1)
-
-plt.axhline(0, color="black", linewidth=0.8, linestyle="--")
-
-plt.xlabel("Time")
-plt.ylabel("Inflation rate (y/y, %)")
-plt.title("HICP Inflation Panel (ECB Data Portal)")
-plt.legend(ncol=3, fontsize=9, frameon=False)
-plt.tight_layout()
-plt.show()
-
-
-# -------------------------
-# 0) Prepare data
-# -------------------------
-df = infl_panel.copy().sort_index().dropna()
-
-# -------------------------
-# 1) ADF unit-root test (levels only)
-# -------------------------
-print("\n=== ADF unit-root tests (levels) ===")
-
-adf_results = []
-for c in df.columns:
-    stat, pval, _, _, _, _ = adfuller(df[c], autolag="AIC")
-    adf_results.append({
-        "country": c,
-        "ADF_stat": stat,
-        "pvalue": pval
-    })
-
-adf_table = pd.DataFrame(adf_results).sort_values("pvalue")
-print(adf_table.to_string(index=False))
-
-# -------------------------
-# 2) Granger causality: X → UA
-#    (bivariate, simple ranking)
-# -------------------------
-maxlag = 6   # keep small for undergrads
-
-print("\n=== Granger causality tests: X → UA ===")
-
-granger_out = []
-
-for c in df.columns:
-    if c == "UA":
-        continue
-
-    data_gc = df[["UA", c]]
+    infl_panel, _ = fetch_ecb_hicp_inflation_panel(
+        countries=countries, start=start, end=end,
+    )
 
     try:
-        res = grangercausalitytests(data_gc, maxlag=maxlag, verbose=False)
+        ua_raw = fetch_ukraine_cpi_prev_month_raw(start=start, end=end)
+        ua_idx = ua_raw_to_monthly_series(ua_raw)
+        ua_idx = ua_idx.loc[f"{start}-01":f"{end}-01"]
+        ua_yoy = cpi_prev_month_index_to_yoy_inflation(ua_idx)
+        ua_yoy.index = pd.to_datetime(ua_yoy.index).to_period("M").to_timestamp(how="start")
+        infl_panel.index = pd.to_datetime(infl_panel.index).to_period("M").to_timestamp(how="start")
+        infl_panel = infl_panel.join(ua_yoy, how="left")
+    except Exception as e:
+        print(f"Warning: could not fetch Ukraine data ({e}). Proceeding without UA.")
+        infl_panel.index = pd.to_datetime(infl_panel.index).to_period("M").to_timestamp(how="start")
 
-        # keep the smallest p-value across lags
-        min_p = min(res[l][0]["ssr_ftest"][1] for l in range(1, maxlag + 1))
+    return infl_panel
 
-        granger_out.append({
+
+if __name__ == "__main__":
+    # -------------------------
+    # Example usage
+    # -------------------------
+    countries = ["DE", "FR", "IT", "ES", "NL", "BE", "AT", "PT", "IE", "FI", "GR"]
+    infl_panel, infl_long = fetch_ecb_hicp_inflation_panel(
+        countries=countries,
+        start="2000-01",
+        end="2025-12"   # optional
+    )
+
+    # -----------------------------------
+    # Fetch Ukraine inflation time series
+    ua_raw = fetch_ukraine_cpi_prev_month_raw(start="2000-01", end="2025-12")
+    print(ua_raw.head())
+    print(ua_raw["TIME_PERIOD"].unique()[:12])
+    print(ua_raw["OBS_VALUE"].unique()[:12])
+
+    # Build the monthly series (prev month = 100)
+    ua_idx = ua_raw_to_monthly_series(ua_raw)
+
+    # Optional: restrict window (month-start)
+    ua_idx = ua_idx.loc["2000-01-01":"2025-12-01"]
+
+    # If you still need y/y inflation (%):
+    ua_yoy = cpi_prev_month_index_to_yoy_inflation(ua_idx)
+
+    # Ensure month-start indices match
+    infl_panel = infl_panel.copy()
+    infl_panel.index = pd.to_datetime(infl_panel.index).to_period("M").to_timestamp(how="start")
+    ua_yoy.index = pd.to_datetime(ua_yoy.index).to_period("M").to_timestamp(how="start")
+
+    infl_panel = infl_panel.join(ua_yoy, how="left")
+
+    # ------------------------------------------------------------
+    # Plot the inflation panel (one line per country)
+    # Assumes `infl_panel` is the wide DataFrame returned above:
+    #   index   = datetime (monthly)
+    #   columns = country codes
+    # ------------------------------------------------------------
+
+    plt.figure(figsize=(12, 6))
+
+    for country in infl_panel.columns:
+        plt.plot(infl_panel.index, infl_panel[country], label=country, linewidth=1)
+
+    plt.axhline(0, color="black", linewidth=0.8, linestyle="--")
+
+    plt.xlabel("Time")
+    plt.ylabel("Inflation rate (y/y, %)")
+    plt.title("HICP Inflation Panel (ECB Data Portal)")
+    plt.legend(ncol=3, fontsize=9, frameon=False)
+    plt.tight_layout()
+    plt.show()
+
+
+    # -------------------------
+    # 0) Prepare data
+    # -------------------------
+    df = infl_panel.copy().sort_index().dropna()
+
+    # -------------------------
+    # 1) ADF unit-root test (levels only)
+    # -------------------------
+    print("\n=== ADF unit-root tests (levels) ===")
+
+    adf_results = []
+    for c in df.columns:
+        stat, pval, _, _, _, _ = adfuller(df[c], autolag="AIC")
+        adf_results.append({
             "country": c,
-            "min_pvalue": min_p
+            "ADF_stat": stat,
+            "pvalue": pval
         })
 
-    except Exception as e:
-        print(f"Granger test failed for {c}: {e}")
+    adf_table = pd.DataFrame(adf_results).sort_values("pvalue")
+    print(adf_table.to_string(index=False))
 
-granger_rank = (
-    pd.DataFrame(granger_out)
-    .sort_values("min_pvalue")
-    .reset_index(drop=True)
-)
+    # -------------------------
+    # 2) Granger causality: X → UA
+    #    (bivariate, simple ranking)
+    # -------------------------
+    maxlag = 6   # keep small for undergrads
 
-print("\n=== Ranking of countries by Granger causality for UA ===")
-print(granger_rank.to_string(index=False))
+    print("\n=== Granger causality tests: X → UA ===")
 
-# -------------------------
-# 3) Simple VAR with BIC
-#    (UA + top 2 predictors)
-# -------------------------
-top_countries = granger_rank["country"].iloc[:2].tolist()
-var_vars = ["UA"] + top_countries
+    granger_out = []
 
-print("\nVAR variables:", var_vars)
+    for c in df.columns:
+        if c == "UA":
+            continue
 
-X_var = df[var_vars]
+        data_gc = df[["UA", c]]
 
-# lag selection by BIC
-model = VAR(X_var)
-lag_selection = model.select_order(maxlags=6)
-p = lag_selection.selected_orders["bic"]
-p = max(1, p)
+        try:
+            res = grangercausalitytests(data_gc, maxlag=maxlag, verbose=False)
 
-print("\n=== VAR lag selection (BIC) ===")
-print(lag_selection.summary())
-print(f"Selected lag order p = {p}")
+            # keep the smallest p-value across lags
+            min_p = min(res[l][0]["ssr_ftest"][1] for l in range(1, maxlag + 1))
 
-# estimate VAR
-var_res = model.fit(p)
-print("\n=== VAR estimation results ===")
-print(var_res.summary())
+            granger_out.append({
+                "country": c,
+                "min_pvalue": min_p
+            })
+
+        except Exception as e:
+            print(f"Granger test failed for {c}: {e}")
+
+    granger_rank = (
+        pd.DataFrame(granger_out)
+        .sort_values("min_pvalue")
+        .reset_index(drop=True)
+    )
+
+    print("\n=== Ranking of countries by Granger causality for UA ===")
+    print(granger_rank.to_string(index=False))
+
+    # -------------------------
+    # 3) Simple VAR with BIC
+    #    (UA + top 2 predictors)
+    # -------------------------
+    top_countries = granger_rank["country"].iloc[:2].tolist()
+    var_vars = ["UA"] + top_countries
+
+    print("\nVAR variables:", var_vars)
+
+    X_var = df[var_vars]
+
+    # lag selection by BIC
+    model = VAR(X_var)
+    lag_selection = model.select_order(maxlags=6)
+    p = lag_selection.selected_orders["bic"]
+    p = max(1, p)
+
+    print("\n=== VAR lag selection (BIC) ===")
+    print(lag_selection.summary())
+    print(f"Selected lag order p = {p}")
+
+    # estimate VAR
+    var_res = model.fit(p)
+    print("\n=== VAR estimation results ===")
+    print(var_res.summary())
