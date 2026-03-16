@@ -83,6 +83,8 @@ from statsmodels.tools.tools import add_constant
 from statsmodels.tsa.api import VAR
 from statsmodels.tsa.stattools import grangercausalitytests
 
+TARGET_COUNTRY = "FR"
+
 def fetch_ecb_hicp_inflation_panel(
     countries,
     start="1997-01-01",
@@ -196,28 +198,21 @@ def fetch_ukraine_cpi_prev_month_raw(
     r = requests.get(url, params=params, headers=headers, timeout=timeout)
     r.raise_for_status()
 
-    raw = pd.read_csv(StringIO(r.text), dtype=str)
+    try:
+        raw = pd.read_csv(StringIO(r.text), dtype=str)
+    except Exception:
+        raw = pd.read_csv(StringIO(r.text), dtype=str,
+                          on_bad_lines="skip", engine="python")
 
-    # --- MINIMAL FIX: some responses include metadata rows.
-    # Keep only rows that look like monthly observations and have OBS_VALUE.
+    # Some responses include metadata rows. Keep only plausible monthly observations.
+    # The API may return either `YYYY-Mmm` or `YYYY-MM`.
     raw = raw.loc[
-        raw["TIME_PERIOD"].astype(str).str.match(r"^\d{4}-M\d{2}$", na=False)
+        raw["TIME_PERIOD"].astype(str).str.match(r"^\d{4}-(?:M\d{2}|\d{2})$", na=False)
         & raw["OBS_VALUE"].notna()
     ].copy()
 
     return raw
 
-
-# Example
-ua_raw = fetch_ukraine_cpi_prev_month_raw(start="2000-01", end="2025-12")
-print(ua_raw.head())
-print(ua_raw["TIME_PERIOD"].unique()[:12])
-print(ua_raw["OBS_VALUE"].unique()[:12])
-
-
-
-# ua_raw is your DataFrame as read from the SDMX-CSV response
-# (i.e., it already has columns like TIME_PERIOD, OBS_VALUE)
 
 def ua_raw_to_monthly_series(ua_raw: pd.DataFrame) -> pd.Series:
     """
@@ -234,14 +229,15 @@ def ua_raw_to_monthly_series(ua_raw: pd.DataFrame) -> pd.Series:
 
     s = ua_raw[["TIME_PERIOD", "OBS_VALUE"]].copy()
 
-    # Keep only true monthly tokens like YYYY-Mmm (defensive)
+    # Keep only true monthly tokens like YYYY-Mmm or YYYY-MM (defensive)
     s["TIME_PERIOD"] = s["TIME_PERIOD"].astype(str).str.strip()
-    s = s[s["TIME_PERIOD"].str.match(r"^\d{4}-M\d{2}$", na=False)]
+    s = s[s["TIME_PERIOD"].str.match(r"^\d{4}-(?:M\d{2}|\d{2})$", na=False)]
 
-    # Convert 'YYYY-Mmm' -> Timestamp at month start
-    # Example: '2000-M01' -> '2000-01-01'
+    # Convert `YYYY-Mmm` or `YYYY-MM` to month-start timestamps.
     s["TIME_PERIOD"] = pd.to_datetime(
-        s["TIME_PERIOD"].str.replace(r"^(\d{4})-M(\d{2})$", r"\1-\2-01", regex=True),
+        s["TIME_PERIOD"]
+        .str.replace(r"^(\d{4})-M(\d{2})$", r"\1-\2", regex=True)
+        .str.replace(r"^(\d{4})-(\d{2})$", r"\1-\2-01", regex=True),
         errors="coerce"
     )
 
@@ -258,26 +254,8 @@ def ua_raw_to_monthly_series(ua_raw: pd.DataFrame) -> pd.Series:
 
     return out
 
-# Build the monthly series (prev month = 100)
-ua_idx = ua_raw_to_monthly_series(ua_raw)
-
-# Optional: restrict window (month-start)
-ua_idx = ua_idx.loc["2000-01-01":"2025-12-01"]
-
-# If you still need y/y inflation (%):
-def cpi_prev_month_index_to_yoy_inflation(idx_prev_month_100: pd.Series) -> pd.Series:
-    monthly_factor = (idx_prev_month_100 / 100.0).astype(float)
-    yoy_factor = monthly_factor.rolling(12).apply(np.prod, raw=True)
-    return ((yoy_factor - 1.0) * 100.0).rename("UA")
-
-ua_yoy = cpi_prev_month_index_to_yoy_inflation(ua_idx)
-
-# Ensure month-start indices match
 infl_panel = infl_panel.copy()
 infl_panel.index = pd.to_datetime(infl_panel.index).to_period("M").to_timestamp(how="start")
-ua_yoy.index = pd.to_datetime(ua_yoy.index).to_period("M").to_timestamp(how="start")
-
-infl_panel = infl_panel.join(ua_yoy, how="left")
 
 
 # ------------------------------------------------------------
@@ -325,20 +303,20 @@ adf_table = pd.DataFrame(adf_results).sort_values("pvalue")
 print(adf_table.to_string(index=False))
 
 # -------------------------
-# 2) Granger causality: X → UA
+# 2) Granger causality: X -> target
 #    (bivariate, simple ranking)
 # -------------------------
 maxlag = 6   # keep small for undergrads
 
-print("\n=== Granger causality tests: X → UA ===")
+print(f"\n=== Granger causality tests: X -> {TARGET_COUNTRY} ===")
 
 granger_out = []
 
 for c in df.columns:
-    if c == "UA":
+    if c == TARGET_COUNTRY:
         continue
 
-    data_gc = df[["UA", c]]
+    data_gc = df[[TARGET_COUNTRY, c]]
 
     try:
         res = grangercausalitytests(data_gc, maxlag=maxlag, verbose=False)
@@ -360,15 +338,15 @@ granger_rank = (
     .reset_index(drop=True)
 )
 
-print("\n=== Ranking of countries by Granger causality for UA ===")
+print(f"\n=== Ranking of countries by Granger causality for {TARGET_COUNTRY} ===")
 print(granger_rank.to_string(index=False))
 
 # -------------------------
 # 3) Simple VAR with BIC
-#    (UA + top 2 predictors)
+#    (target + top 2 predictors)
 # -------------------------
 top_countries = granger_rank["country"].iloc[:2].tolist()
-var_vars = ["UA"] + top_countries
+var_vars = [TARGET_COUNTRY] + top_countries
 
 print("\nVAR variables:", var_vars)
 
@@ -388,4 +366,3 @@ print(f"Selected lag order p = {p}")
 var_res = model.fit(p)
 print("\n=== VAR estimation results ===")
 print(var_res.summary())
-
