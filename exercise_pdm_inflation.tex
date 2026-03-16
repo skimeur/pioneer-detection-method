@@ -1,0 +1,250 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{geometry}
+\geometry{margin=2.5cm}
+\usepackage{enumitem}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{caption}
+
+\lstset{
+  language=Python,
+  basicstyle=\ttfamily\small,
+  keywordstyle=\color{blue!70!black},
+  commentstyle=\color{green!50!black},
+  stringstyle=\color{red!60!black},
+  backgroundcolor=\color{gray!5},
+  frame=single,
+  framerule=0.4pt,
+  breaklines=true,
+  showstringspaces=false,
+  columns=flexible,
+}
+
+\title{\textbf{Exercise: Applying the Pioneer Detection Method\\ to European Inflation Dynamics}}
+\author{Eric Vansteenberghe}
+\date{}
+
+\begin{document}
+\maketitle
+
+Based on the Pioneer Detection Method (PDM) introduced in:\medskip\\
+\textit{Vansteenberghe, E.\ (2025), ``Insurance Supervision under Climate Change:
+A Pioneer Detection Method,''
+The Geneva Papers on Risk and Insurance -- Issues and Practice.}\\[4pt]
+\url{https://doi.org/10.1057/s41288-025-00367-y}
+
+\section*{Context}
+
+The Pioneer Detection Method (PDM) was developed to identify experts whose estimates deviate early from the consensus but toward whom other experts subsequently converge. Originally designed for insurance supervision under climate change, where the true tail parameter of the loss distribution is unobservable, the method applies naturally to any setting where multiple non-cooperating agents produce time series that may exhibit directional convergence after a structural break.
+
+In this exercise, you will apply the PDM and its alternatives to a panel of European inflation time series. Each country's inflation rate is treated as an ``expert estimate'' of the underlying inflation trend. Countries do not coordinate their inflation outcomes---each responds to its own supply and demand shocks, energy mix, and policy environment. Yet common shocks (energy prices, monetary policy, supply chains) induce convergence patterns that the PDM can detect.
+
+\medskip
+
+\noindent\textbf{Repository:} \url{https://github.com/skimeur/pioneer-detection-method}
+
+\noindent\textbf{Starter code:} \texttt{ecb\_hicp\_panel\_var\_granger.py} (data fetching and Granger/VAR analysis) and \texttt{pdm.py} (all PDM methods).
+
+\section*{Data}
+
+The inflation panel is built from two sources:
+\begin{itemize}[nosep]
+    \item \textbf{ECB Data Portal} (SDMX 2.1): monthly HICP inflation (year-on-year, \%) for 11~eurozone countries: DE, FR, IT, ES, NL, BE, AT, PT, IE, FI, GR.
+    \item \textbf{State Statistics Service of Ukraine} (SSSU, SDMX v3): monthly CPI (previous month $= 100$), converted to year-on-year inflation.
+\end{itemize}
+
+\noindent The panel covers 2000--2025 at monthly frequency. The script \texttt{ecb\_hicp\_panel\_var\_granger.py} fetches and merges these series into a single DataFrame \texttt{infl\_panel} with columns = country codes and rows = months.
+
+\section*{Available methods in \texttt{pdm.py}}
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{@{}rll@{}}
+\toprule
+\# & Method & Function \\
+\midrule
+1 & PDM with angles (preferred) & \texttt{compute\_pioneer\_weights\_angles} \\
+2 & PDM with distances & \texttt{compute\_pioneer\_weights\_distance} \\
+3 & Granger Causality & \texttt{compute\_granger\_weights} \\
+4 & Lagged Correlation & \texttt{compute\_lagged\_correlation\_weights} \\
+5 & Multivariate Linear Regressions & \texttt{compute\_multivariate\_regression\_weights} \\
+6 & Transfer Entropy & \texttt{compute\_transfer\_entropy\_weights} \\
+7 & Linear Opinion Pooling & \texttt{compute\_linear\_pooling\_weights} \\
+8 & Median Pooling & \texttt{compute\_median\_pooling} \\
+\bottomrule
+\end{tabular}
+\caption*{All weight functions take a \texttt{(T $\times$ N)} DataFrame and return weights of the same shape (except Median Pooling, which returns a Series). Use \texttt{pooled\_forecast(forecasts, weights)} to compute the weighted combination.}
+\end{table}
+
+
+\section{Part~A: Who pioneered European inflation dynamics?}
+
+\noindent In this part, treat the full panel of 12~series (11~EU countries + Ukraine) as the set of ``experts.''
+
+\subsection*{Question~A.1 --- PDM weights over time}
+
+\begin{enumerate}[label=(\alph*)]
+    \item Load the inflation panel using \texttt{ecb\_hicp\_panel\_var\_granger.py}. Restrict to the complete-case sample (\texttt{.dropna()}).
+    \item Apply \texttt{compute\_pioneer\_weights\_angles} to the panel. This returns a \texttt{(T $\times$ 12)} DataFrame of time-varying pioneer weights.
+    \item Plot the pioneer weight of each country over time (one line per country, or a heatmap). Which countries receive non-zero pioneer weight, and when?
+    \item Discuss: during periods of low and stable inflation (e.g.\ 2000--2007), do you observe strong pioneers? What does this mean in the context of the PDM theory?
+\end{enumerate}
+
+\subsection*{Question~A.2 --- Average pioneer weights by subperiod}
+
+Compute the average PDM (angles) weight for each country over the following subperiods:
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{@{}lll@{}}
+\toprule
+Period & Dates & Economic context \\
+\midrule
+I   & 2002--2007 & Great Moderation, low inflation dispersion \\
+II  & 2008--2012 & Global Financial Crisis, eurozone sovereign debt crisis \\
+III & 2013--2019 & Low inflation / deflation fears, ECB QE \\
+IV  & 2020--2021 & COVID-19 pandemic, supply chain disruptions \\
+V   & 2022--2023 & Energy crisis, post-invasion inflation surge \\
+VI  & 2024--2025 & Disinflation phase \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{enumerate}[label=(\alph*)]
+    \item Present the results in a table: rows = countries, columns = subperiods, values = average pioneer weight.
+    \item Rank countries in each subperiod. Does the ranking change over time?
+    \item Provide an economic interpretation: which structural characteristics (energy mix, trade openness, financial sector size, geographic position) might explain early exposure to inflation shocks?
+
+\end{enumerate}
+
+
+
+
+\section{Part~B: Predicting Ukraine's inflation trajectory}
+
+\noindent In this part, treat Ukraine as the ``true parameter to predict'' and the 11~EU countries as the ``experts.''
+
+\subsection*{Motivation}
+
+Let's imagine you are a supervisor monitoring Ukrainian inflation not observing the structural forces driving it (war, energy markets, agricultural disruption, monetary policy) but can observe EU countries' inflation outcomes. Some EU countries may exhibit inflation dynamics that \emph{precede} similar movements in Ukraine---for instance, because energy price shocks hit EU markets before propagating to Ukraine through trade channels, or because EU monetary policy signals foreshadow global inflation trends.
+
+The goal is to identify which EU countries are ``pioneers'' for Ukrainian inflation, i.e., which countries' inflation moves first in a direction that Ukraine's inflation subsequently follows.
+
+\subsection*{Question~B.1 --- Rolling pioneer detection}
+
+\begin{enumerate}[label=(\alph*)]
+    \item Apply the PDM (angles) on a rolling window. At each window position, record which EU country has the highest pioneer weight relative to Ukraine.
+    \item Plot the ``dominant pioneer'' over time. Does the identity of the pioneer change across subperiods?
+\end{enumerate}
+
+\subsection*{Question~B.2 --- Forecasting evaluation}
+
+\begin{enumerate}[label=(\alph*)]
+    \item For each method, compute the pooled estimate of Ukraine's inflation using only EU countries as inputs (i.e., use the method's weights applied to EU countries' inflation to produce a ``forecast'' of where Ukraine's inflation is heading).
+
+    Formally, the supervisor's estimate at time $t$ is:
+    \[
+    \hat{\pi}_{\text{UA}}^t = \sum_{i \in \text{EU}} w_i^t \cdot \pi_i^t
+    \]
+    where $\pi_i^t$ is country $i$'s inflation and $w_i^t$ are the pioneer weights.
+
+    \item Compare each method's pooled estimate against Ukraine's actual inflation using Root Mean Square Error:
+    \[
+    \text{RMSE} = \sqrt{\frac{1}{T}\sum_{t=1}^T \left(\hat{\pi}_{\text{UA}}^t - \pi_{\text{UA}}^t\right)^2}
+    \]
+
+    \item Report RMSE for each method and each subperiod. Which method produces the most accurate ``forecast'' of Ukraine's inflation?
+
+    \item \textbf{Important caveat:} The PDM was not designed as a forecasting tool---it was designed to identify pioneers and accelerate collective learning. A low RMSE here does not mean the method is a good forecaster; it means that the weighted combination of EU countries' inflation happens to track Ukraine's inflation well. Discuss the limits of this interpretation.
+\end{enumerate}
+
+\section*{Code template}
+
+The following code connects the data from \texttt{ecb\_hicp\_panel\_var\_granger.py} to the methods in \texttt{pdm.py}:
+
+\begin{lstlisting}
+# After running ecb_hicp_panel_var_granger.py, you have infl_panel
+# with columns: DE, FR, IT, ES, NL, BE, AT, PT, IE, FI, GR, UA
+
+from pdm import (
+    compute_pioneer_weights_angles,
+    compute_pioneer_weights_distance,
+    compute_granger_weights,
+    compute_lagged_correlation_weights,
+    compute_multivariate_regression_weights,
+    compute_transfer_entropy_weights,
+    compute_linear_pooling_weights,
+    compute_median_pooling,
+    pooled_forecast,
+)
+
+# --- Part A: full panel, all countries as "experts" ---
+panel = infl_panel.dropna()
+w_angles = compute_pioneer_weights_angles(panel)
+
+# Average weights by subperiod
+periods = {
+    "I (2002-07)":  ("2002-01", "2007-12"),
+    "II (2008-12)": ("2008-01", "2012-12"),
+    "III (2013-19)":("2013-01", "2019-12"),
+    "IV (2020-21)": ("2020-01", "2021-12"),
+    "V (2022-23)":  ("2022-01", "2023-12"),
+    "VI (2024-25)": ("2024-01", "2025-12"),
+}
+for name, (s, e) in periods.items():
+    sub = w_angles.loc[s:e]
+    print(f"\n{name}")
+    print(sub.mean().sort_values(ascending=False))
+
+# --- Part B: EU countries as experts, Ukraine as target ---
+eu_cols = [c for c in panel.columns if c != "UA"]
+eu_panel = panel[eu_cols]
+w_eu = compute_pioneer_weights_angles(eu_panel)
+forecast_ua = pooled_forecast(eu_panel, w_eu)
+
+# RMSE vs actual Ukraine inflation
+import numpy as np
+actual_ua = panel["UA"]
+rmse = np.sqrt(((forecast_ua - actual_ua) ** 2).mean())
+print(f"RMSE (PDM angles): {rmse:.4f}")
+\end{lstlisting}
+
+\section*{Deliverables}
+
+\begin{enumerate}[label=\arabic*.]
+    \item \textbf{A dedicated Python script} named \texttt{exercise\_pdm\_inflation.py} containing all your code. This script should:
+    \begin{itemize}[nosep]
+        \item import from \texttt{pdm.py} and reuse data-fetching logic from \texttt{ecb\_hicp\_panel\_var\_granger.py};
+        \item be self-contained: running \texttt{python exercise\_pdm\_inflation.py} should produce all tables and figures;
+        \item be clearly structured with sections matching Parts~A and~B.
+    \end{itemize}
+    \item \textbf{Tables}: average pioneer weights by country and subperiod (Question~A.2), RMSE by method (Question~B.2).
+    \item \textbf{Figures}: pioneer weights over time (Question~A.1), dominant pioneer over time (Question~B.1).
+    \item \textbf{A short written discussion} of your results: economic interpretation of the pioneer rankings (Part~A) and limits of the forecasting analogy (Part~B, Question~B.2d).
+\end{enumerate}
+
+\section*{Submission}
+
+When your code is complete and produces correct results:
+
+\begin{enumerate}[label=\arabic*.]
+    \item Fork the original repository at \url{https://github.com/skimeur/pioneer-detection-method}.
+    \item Add your \texttt{exercise\_pdm\_inflation.py} script (and any figures or tables you wish to include) to your fork.
+    \item Open a \textbf{Pull Request} to the original repository with:
+    \begin{itemize}[nosep]
+        \item a clear title, e.g.\ \texttt{[Exercise] PDM inflation panel -- Your Name};
+        \item a short description of your approach and main findings in the PR body.
+    \end{itemize}
+\end{enumerate}
+
+\noindent This allows the course instructor to review your work directly on GitHub and provides you with experience contributing to an open-source project.
+
+\end{document}
