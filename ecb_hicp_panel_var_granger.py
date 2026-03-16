@@ -171,6 +171,9 @@ infl_panel, infl_long = fetch_ecb_hicp_inflation_panel(
 # -----------------------------------
 # Fetch Ukraine inflation time series
 
+# -----------------------------------
+# Fetch Ukraine inflation time series
+
 def fetch_ukraine_cpi_prev_month_raw(
     start="2000-01",
     end="2025-12",
@@ -180,32 +183,41 @@ def fetch_ukraine_cpi_prev_month_raw(
     Fetch Ukraine CPI (previous month = 100) from the SSSU SDMX API v3 and return
     the raw SDMX-CSV as a DataFrame (no date/numeric parsing).
     """
-    base = "https://stat.gov.ua/sdmx/workspaces/default:integration/registry/sdmx/3.0/data"
-    agency = "SSSU"
-    flow = "DF_PRICE_CHANGE_CONSUMER_GOODS_SERVICE"
-    version = "~"
-    key = "INDEX_CONSUMPRICE.PREV_MONTH.UA00000000000000000.0.M"
+    try:
+        base = "https://stat.gov.ua/sdmx/workspaces/default:integration/registry/sdmx/3.0/data"
+        agency = "SSSU"
+        flow = "DF_PRICE_CHANGE_CONSUMER_GOODS_SERVICE"
+        version = "~"
+        key = "INDEX_CONSUMPRICE.PREV_MONTH.UA00000000000000000.0.M"
 
-    url = f"{base}/dataflow/{agency}/{flow}/{version}/{key}"
-    params = {"c[TIME_PERIOD]": f"ge:{start}+le:{end}"}
-    headers = {
-        "Accept": "application/vnd.sdmx.data+csv;version=2.0.0;labels=id;timeFormat=normalized;keys=both",
-        "User-Agent": "Mozilla/5.0",
-    }
+        url = f"{base}/dataflow/{agency}/{flow}/{version}/{key}"
+        params = {"c[TIME_PERIOD]": f"ge:{start}+le:{end}"}
+        headers = {
+            "Accept": "application/vnd.sdmx.data+csv;version=2.0.0;labels=id;timeFormat=normalized;keys=both",
+            "User-Agent": "Mozilla/5.0",
+        }
 
-    r = requests.get(url, params=params, headers=headers, timeout=timeout)
-    r.raise_for_status()
+        r = requests.get(url, params=params, headers=headers, timeout=timeout)
+        r.raise_for_status()
 
-    raw = pd.read_csv(StringIO(r.text), dtype=str)
+        # Check if response is HTML (maintenance page)
+        if r.text.strip().startswith("<!DOCTYPE html>"):
+            raise ValueError("API returned HTML maintenance page instead of CSV data.")
 
-    # --- MINIMAL FIX: some responses include metadata rows.
-    # Keep only rows that look like monthly observations and have OBS_VALUE.
-    raw = raw.loc[
-        raw["TIME_PERIOD"].astype(str).str.match(r"^\d{4}-M\d{2}$", na=False)
-        & raw["OBS_VALUE"].notna()
-    ].copy()
+        raw = pd.read_csv(StringIO(r.text), dtype=str)
 
-    return raw
+        # --- MINIMAL FIX: some responses include metadata rows.
+        # Keep only rows that look like monthly observations and have OBS_VALUE.
+        raw = raw.loc[
+            raw["TIME_PERIOD"].astype(str).str.match(r"^\d{4}-M\d{2}$", na=False)
+            & raw["OBS_VALUE"].notna()
+        ].copy()
+
+        return raw
+    except Exception as e:
+        print(f"Failed to fetch Ukraine data: {e}")
+        print("Proceeding without Ukraine data.")
+        return None
 
 
 # Example
@@ -259,25 +271,24 @@ def ua_raw_to_monthly_series(ua_raw: pd.DataFrame) -> pd.Series:
     return out
 
 # Build the monthly series (prev month = 100)
-ua_idx = ua_raw_to_monthly_series(ua_raw)
+if ua_raw is not None:
+    ua_idx = ua_raw_to_monthly_series(ua_raw)
 
-# Optional: restrict window (month-start)
-ua_idx = ua_idx.loc["2000-01-01":"2025-12-01"]
+    # Optional: restrict window (month-start)
+    ua_idx = ua_idx.loc["2000-01-01":"2025-12-01"]
 
-# If you still need y/y inflation (%):
-def cpi_prev_month_index_to_yoy_inflation(idx_prev_month_100: pd.Series) -> pd.Series:
-    monthly_factor = (idx_prev_month_100 / 100.0).astype(float)
-    yoy_factor = monthly_factor.rolling(12).apply(np.prod, raw=True)
-    return ((yoy_factor - 1.0) * 100.0).rename("UA")
+    # If you still need y/y inflation (%):
+    ua_yoy = cpi_prev_month_index_to_yoy_inflation(ua_idx)
 
-ua_yoy = cpi_prev_month_index_to_yoy_inflation(ua_idx)
+    # Ensure month-start indices match
+    infl_panel = infl_panel.copy()
+    infl_panel.index = pd.to_datetime(infl_panel.index).to_period("M").to_timestamp(how="start")
+    ua_yoy.index = pd.to_datetime(ua_yoy.index).to_period("M").to_timestamp(how="start")
 
-# Ensure month-start indices match
-infl_panel = infl_panel.copy()
-infl_panel.index = pd.to_datetime(infl_panel.index).to_period("M").to_timestamp(how="start")
-ua_yoy.index = pd.to_datetime(ua_yoy.index).to_period("M").to_timestamp(how="start")
-
-infl_panel = infl_panel.join(ua_yoy, how="left")
+    infl_panel = infl_panel.join(ua_yoy, how="left")
+else:
+    print("Ukraine data not available, proceeding with EU data only.")
+    infl_panel.index = pd.to_datetime(infl_panel.index).to_period("M").to_timestamp(how="start")
 
 
 # ------------------------------------------------------------
