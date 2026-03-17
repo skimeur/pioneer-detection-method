@@ -1,12 +1,4 @@
-"""
-exercise_pdm_inflation.py
-
-Exercise: Applying the Pioneer Detection Method to European Inflation Dynamics
-Part A only
-
-"""
-
-from __future__ import annotations
+ __future__ import annotations
 
 from pathlib import Path
 import importlib.util
@@ -17,8 +9,18 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-from pdm import compute_pioneer_weights_angles
 
+from pdm import (
+    compute_pioneer_weights_angles,
+    compute_pioneer_weights_distance,
+    compute_granger_weights,
+    compute_lagged_correlation_weights,
+    compute_multivariate_regression_weights,
+    compute_transfer_entropy_weights,
+    compute_linear_pooling_weights,
+    compute_median_pooling,
+    pooled_forecast,
+)
 
 # =========================================================
 # CONFIG
@@ -94,11 +96,6 @@ def average_weights_by_subperiod(
     """
     Compute average pioneer weights by country and subperiod.
 
-    Returns
-    -------
-    pd.DataFrame
-        Rows: countries
-        Columns: subperiod labels
     """
     out: dict[str, pd.Series] = {}
 
@@ -228,16 +225,10 @@ def print_non_zero_summary(weights: pd.DataFrame) -> None:
 # PART A
 # =========================================================
 
-def run_part_a() -> None:
+def run_part_a(infl_panel: pd.DataFrame, df: pd.DataFrame) -> None:
     print("\n" + "=" * 72)
     print("PART A — WHO PIONEERED EUROPEAN INFLATION DYNAMICS?")
     print("=" * 72)
-
-    # -----------------------------------------------------
-    # A.1(a) Load the inflation panel and restrict to complete-case sample
-    # -----------------------------------------------------
-    infl_panel = load_inflation_panel()
-    df = infl_panel.dropna().copy()
 
     print("\n[A.1.a] Inflation panel loaded")
     print(f"Shape before dropna: {infl_panel.shape}")
@@ -247,9 +238,6 @@ def run_part_a() -> None:
     print("\nSample period:")
     print(f"{df.index.min().strftime('%Y-%m')} -> {df.index.max().strftime('%Y-%m')}")
 
-    # -----------------------------------------------------
-    # A.1(b) Apply PDM with angles
-    # -----------------------------------------------------
     weights = compute_pioneer_weights_angles(df)
 
     print("\n[A.1.b] Pioneer weights computed")
@@ -257,9 +245,6 @@ def run_part_a() -> None:
 
     save_table_csv_and_excel(weights, "A1_pioneer_weights_time_varying")
 
-    # -----------------------------------------------------
-    # A.1(c) Plot pioneer weights over time
-    # -----------------------------------------------------
     line_fig = plot_pioneer_weights_lines(weights)
     heatmap_fig = plot_pioneer_weights_heatmap(weights)
 
@@ -268,9 +253,6 @@ def run_part_a() -> None:
 
     print_non_zero_summary(weights)
 
-    # -----------------------------------------------------
-    # A.2 Average pioneer weights by subperiod
-    # -----------------------------------------------------
     avg_table = average_weights_by_subperiod(weights, SUBPERIODS)
     rank_table = rank_countries_by_subperiod(avg_table)
 
@@ -287,17 +269,10 @@ def run_part_a() -> None:
     print("=" * 72)
     print(rank_table.to_string())
 
-
     print("\nDone. All Part A outputs are in:")
     print(OUTPUT_DIR)
 
 
-# =========================================================
-# MAIN
-# =========================================================
-
-if __name__ == "__main__":
-    run_part_a()
 
 # =========================================================
 # A.1 (c) Interpretation — Which countries receive non-zero pioneer weight?
@@ -343,3 +318,207 @@ if __name__ == "__main__":
 # This shows that pioneer status is not stable over time. The countries that
 # move first in inflation dynamics depend on the type of macroeconomic shock
 # affecting Europe during each period.
+
+# =========================
+# PART B — ALTERNATIVE IMPLEMENTATION
+# =========================
+
+
+
+# -------------------------
+# CONFIG
+# -------------------------
+
+TARGET_SERIES = "UA"
+WINDOW_SIZE = 24
+
+EU_MEMBERS = [
+    "DE", "FR", "IT", "ES", "NL",
+    "BE", "AT", "PT", "IE", "FI", "GR"
+]
+
+
+TIME_BLOCKS = {
+    "I (2002-07)": ("2002-01", "2007-12"),
+    "II (2008-12)": ("2008-01", "2012-12"),
+    "III (2013-19)": ("2013-01", "2019-12"),
+    "IV (2020-21)": ("2020-01", "2021-12"),
+    "V (2022-23)": ("2022-01", "2023-12"),
+    "VI (2024-25)": ("2024-01", "2025-12"),
+}
+
+
+# -------------------------
+# B.1 — Rolling leader detection
+# -------------------------
+
+def extract_leading_country(frame: pd.DataFrame) -> str | float:
+    """Return dominant country or NaN if undefined"""
+    valid = frame.dropna()
+    if valid.empty:
+        return np.nan
+    return valid.idxmax()
+
+
+def scan_leaders(panel: pd.DataFrame) -> pd.Series:
+    """Rolling detection of dominant EU pioneer vs Ukraine"""
+
+    timestamps = panel.index
+    leaders = {}
+
+    for t in range(WINDOW_SIZE - 1, len(panel)):
+        sub_window = panel.iloc[t - WINDOW_SIZE + 1: t + 1]
+        current_time = timestamps[t]
+
+        scores = {}
+
+        for country in EU_MEMBERS:
+            duo = sub_window[[country, TARGET_SERIES]].dropna()
+
+            if len(duo) < 3:
+                scores[country] = np.nan
+                continue
+
+            weights = compute_pioneer_weights_angles(duo)
+
+            if weights.empty:
+                scores[country] = np.nan
+            else:
+                scores[country] = weights.iloc[-1][country]
+
+        scores_series = pd.Series(scores)
+        leaders[current_time] = extract_leading_country(scores_series)
+
+    return pd.Series(leaders, name="dominant_pioneer")
+
+
+# -------------------------
+# B.2 — Forecast evaluation
+# -------------------------
+
+def compute_predictions(panel: pd.DataFrame) -> dict[str, pd.Series]:
+    """Generate pooled estimates using multiple methods"""
+
+    methods_map = {
+        "Angles": compute_pioneer_weights_angles,
+        "Distance": compute_pioneer_weights_distance,
+        "Granger": compute_granger_weights,
+        "LagCorr": compute_lagged_correlation_weights,
+        "MLR": compute_multivariate_regression_weights,
+        "Entropy": compute_transfer_entropy_weights,
+        "Linear": compute_linear_pooling_weights,
+        "Median": compute_median_pooling,
+    }
+
+    results = {}
+
+    for label, func in methods_map.items():
+        output = func(panel)
+
+        if isinstance(output, pd.Series):
+            results[label] = output.rename(label)
+        else:
+            results[label] = pooled_forecast(panel, output).rename(label)
+
+    return results
+
+
+def compute_rmse(y_true: pd.Series, y_pred: pd.Series) -> float:
+    aligned = pd.concat([y_true, y_pred], axis=1).dropna()
+    return float(np.sqrt(((aligned.iloc[:, 1] - aligned.iloc[:, 0]) ** 2).mean()))
+
+
+def evaluate_models(panel: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Compute RMSE globally and by subperiod"""
+
+    eu_only = panel[EU_MEMBERS]
+    actual = panel[TARGET_SERIES]
+
+    preds = compute_predictions(eu_only)
+
+    # global RMSE
+    global_scores = {
+        name: compute_rmse(actual, pred)
+        for name, pred in preds.items()
+    }
+
+    global_df = pd.Series(global_scores, name="RMSE").sort_values().to_frame()
+
+    # subperiod RMSE
+    period_scores = {}
+
+    for method, pred in preds.items():
+        per_period = {}
+
+        for label, (start, end) in TIME_BLOCKS.items():
+            per_period[label] = compute_rmse(
+                actual.loc[start:end],
+                pred.loc[start:end]
+            )
+
+        period_scores[method] = per_period
+
+    period_df = pd.DataFrame(period_scores).T
+    period_df["Full"] = pd.Series(global_scores)
+
+    return global_df, period_df
+
+
+# -------------------------
+# MAIN EXECUTION (Part B)
+# -------------------------
+
+def run_part_b(panel: pd.DataFrame):
+    print("\n" + "=" * 72)
+    print("PART B — PREDICTING UKRAINE'S INFLATION TRAJECTORY")
+    print("=" * 72)
+
+    leaders = scan_leaders(panel)
+    counts = leaders.value_counts()
+
+    print("\n" + "=" * 72)
+    print("QUESTION B.1 — DOMINANT PIONEER COUNTS")
+    print("=" * 72)
+    print(counts.to_string())
+
+    global_rmse, period_rmse = evaluate_models(panel)
+
+    print("\n" + "=" * 72)
+    print("QUESTION B.2 — RMSE FULL SAMPLE")
+    print("=" * 72)
+    print(global_rmse.round(4).to_string())
+
+    print("\n" + "=" * 72)
+    print("QUESTION B.2 — RMSE BY SUBPERIOD")
+    print("=" * 72)
+    print(period_rmse.round(4).to_string())
+
+    return leaders, counts, global_rmse, period_rmse
+
+def main() -> None:
+    infl_panel = load_inflation_panel()
+    clean_panel = infl_panel.dropna().copy()
+
+    run_part_a(infl_panel, clean_panel)
+    run_part_b(clean_panel)
+
+
+if __name__ == "__main__":
+    main()
+
+# B.1(b)
+# Germany clearly shows up most often as the dominant pioneer.
+# Other countries appear from time to time, but much less frequently.
+
+# B.2(c)
+# Distance and Angles give the lowest RMSE overall.
+# That said, the differences between methods are quite small.
+
+# B.2(c)
+# The best method is not the same across periods.
+# Performance depends a lot on the specific time window.
+
+# B.2(d)
+# PDM was not built as a forecasting tool.
+# A low RMSE here just means the weighted EU inflation tracks Ukraine fairly well,
+# not that it has strong predictive power.
