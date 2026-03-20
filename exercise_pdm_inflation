@@ -1,0 +1,463 @@
+from __future__ import annotations
+
+from pathlib import Path
+from typing import Callable
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+from pdm import (
+    compute_pioneer_weights_angles,
+    compute_pioneer_weights_distance,
+    compute_granger_weights,
+    compute_lagged_correlation_weights,
+    compute_multivariate_regression_weights,
+    compute_transfer_entropy_weights,
+    compute_linear_pooling_weights,
+    compute_median_pooling,
+    pooled_forecast,
+)
+
+
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+"""
+exercise_pdm_inflation.py
+
+Exercise: Applying the Pioneer Detection Method to European Inflation Dynamics
+
+This script:
+- reuses the data-building logic from ecb_hicp_panel_var_granger.py
+- imports all required methods from pdm.py
+- produces the requested tables and figures for Parts A and B
+
+Run:
+    python exercise_pdm_inflation.py
+"""
+# Reuse the starter code logic by importing the already-built panel.
+# The starter script builds infl_panel at import time.
+from ecb_hicp_panel_var_granger import infl_panel
+
+
+# =============================================================================
+# CONFIG
+# =============================================================================
+
+OUTPUT_DIR = Path(__file__).resolve().parent / "outputs_pdm_inflation"
+FIG_DIR = OUTPUT_DIR / "figures"
+TAB_DIR = OUTPUT_DIR / "tables"
+
+OUTPUT_DIR.mkdir(exist_ok=True)
+FIG_DIR.mkdir(exist_ok=True)
+TAB_DIR.mkdir(exist_ok=True)
+
+PERIODS = {
+    "I (2002-07)": ("2002-01", "2007-12"),
+    "II (2008-12)": ("2008-01", "2012-12"),
+    "III (2013-19)": ("2013-01", "2019-12"),
+    "IV (2020-21)": ("2020-01", "2021-12"),
+    "V (2022-23)": ("2022-01", "2023-12"),
+    "VI (2024-25)": ("2024-01", "2025-12"),
+}
+
+EU_COUNTRIES = ["DE", "FR", "IT", "ES", "NL", "BE", "AT", "PT", "IE", "FI", "GR"]
+TARGET = "UA"
+
+
+# =============================================================================
+# HELPERS
+# =============================================================================
+
+def prepare_panel() -> pd.DataFrame:
+    """
+    Restrict to complete-case sample and make sure the index is monthly datetime.
+    """
+    panel = infl_panel.copy()
+    panel.index = pd.to_datetime(panel.index)
+    panel = panel.sort_index().dropna()
+    return panel
+
+
+def save_table(df: pd.DataFrame, name: str) -> None:
+    csv_path = TAB_DIR / f"{name}.csv"
+    xlsx_path = TAB_DIR / f"{name}.xlsx"
+    df.to_csv(csv_path)
+    df.to_excel(xlsx_path)
+
+
+def rmse(y_true: pd.Series, y_pred: pd.Series) -> float:
+    aligned = pd.concat([y_true.rename("actual"), y_pred.rename("pred")], axis=1).dropna()
+    return float(np.sqrt(((aligned["pred"] - aligned["actual"]) ** 2).mean()))
+
+
+def rmse_by_subperiod(actual: pd.Series, pred: pd.Series, periods: dict[str, tuple[str, str]]) -> pd.Series:
+    out: dict[str, float] = {}
+    for period_name, (start, end) in periods.items():
+        out[period_name] = rmse(actual.loc[start:end], pred.loc[start:end])
+    return pd.Series(out, name="RMSE")
+
+
+def rank_table(avg_weights: pd.DataFrame) -> pd.DataFrame:
+    """
+    Rank countries within each subperiod (1 = largest average weight).
+    """
+    return avg_weights.rank(axis=0, ascending=False, method="min")
+
+
+def dominant_country(weights: pd.DataFrame) -> pd.Series:
+    """
+    Return the country with highest weight at each date.
+    Rows with all NaN stay NaN.
+    """
+    def _row_argmax(row: pd.Series):
+        row = row.dropna()
+        if row.empty:
+            return np.nan
+        return row.idxmax()
+
+    return weights.apply(_row_argmax, axis=1)
+
+
+def brief_nonzero_summary(weights: pd.DataFrame) -> pd.DataFrame:
+    """
+    Useful compact summary for A.1(c): how often each country receives non-zero weight.
+    """
+    is_nonzero = weights.fillna(0).gt(0)
+    summary = pd.DataFrame({
+        "non_zero_count": is_nonzero.sum(axis=0),
+        "share_of_months": is_nonzero.mean(axis=0),
+        "avg_weight_when_positive": weights.where(is_nonzero).mean(axis=0),
+        "overall_avg_weight": weights.mean(axis=0),
+    }).sort_values("overall_avg_weight", ascending=False)
+    return summary
+
+
+def plot_weights_over_time(weights: pd.DataFrame, title: str, filename: str) -> None:
+    plt.figure(figsize=(14, 7))
+    for col in weights.columns:
+        plt.plot(weights.index, weights[col], label=col, linewidth=1)
+    plt.title(title)
+    plt.xlabel("Time")
+    plt.ylabel("Pioneer weight")
+    plt.legend(ncol=4, fontsize=8, frameon=False)
+    plt.tight_layout()
+    plt.savefig(FIG_DIR / filename, dpi=200, bbox_inches="tight")
+    plt.close()
+
+
+def plot_weights_heatmap(weights: pd.DataFrame, title: str, filename: str) -> None:
+    plt.figure(figsize=(14, 6))
+    plt.imshow(weights.T.fillna(0).values, aspect="auto", interpolation="nearest")
+    plt.yticks(np.arange(len(weights.columns)), weights.columns)
+    tick_idx = np.linspace(0, len(weights.index) - 1, 10, dtype=int)
+    plt.xticks(tick_idx, [weights.index[i].strftime("%Y-%m") for i in tick_idx], rotation=45, ha="right")
+    plt.colorbar(label="Pioneer weight")
+    plt.title(title)
+    plt.tight_layout()
+    plt.savefig(FIG_DIR / filename, dpi=200, bbox_inches="tight")
+    plt.close()
+
+
+def compute_average_weights_by_period(weights: pd.DataFrame, periods: dict[str, tuple[str, str]]) -> pd.DataFrame:
+    out = {}
+    for period_name, (start, end) in periods.items():
+        out[period_name] = weights.loc[start:end].mean(axis=0)
+    return pd.DataFrame(out).sort_index()
+
+
+def compute_methods_forecasts(
+    eu_panel: pd.DataFrame,
+) -> dict[str, pd.Series]:
+    """
+    Compute pooled estimates of Ukraine inflation using only EU countries as inputs.
+    For all weight-based methods we build weights on eu_panel, then apply pooled_forecast.
+    Median pooling directly returns a pooled series.
+    """
+    methods: dict[str, Callable[[pd.DataFrame], pd.DataFrame | pd.Series]] = {
+        "PDM_Angles": compute_pioneer_weights_angles,
+        "PDM_Distance": compute_pioneer_weights_distance,
+        "Granger": compute_granger_weights,
+        "Lagged_Correlation": compute_lagged_correlation_weights,
+        "Multivariate_Regression": compute_multivariate_regression_weights,
+        "Transfer_Entropy": compute_transfer_entropy_weights,
+        "Linear_Pooling": compute_linear_pooling_weights,
+        "Median_Pooling": compute_median_pooling,
+    }
+
+    forecasts: dict[str, pd.Series] = {}
+
+    for name, fn in methods.items():
+        result = fn(eu_panel)
+        if isinstance(result, pd.Series):
+            forecasts[name] = result.rename(name)
+        else:
+            forecasts[name] = pooled_forecast(eu_panel, result).rename(name)
+
+    return forecasts
+
+
+# =============================================================================
+# PART A — WHO PIONEERED EUROPEAN INFLATION DYNAMICS?
+# =============================================================================
+
+def run_part_a(panel: pd.DataFrame) -> dict[str, pd.DataFrame]:
+    print("\n" + "=" * 80)
+    print("PART A — WHO PIONEERED EUROPEAN INFLATION DYNAMICS?")
+    print("=" * 80)
+
+    # A.1(a)(b)
+    w_angles = compute_pioneer_weights_angles(panel)
+
+    # A.1(c) figure(s)
+    plot_weights_over_time(
+        w_angles,
+        title="Part A.1 — PDM (angles) pioneer weights over time",
+        filename="part_a1_pioneer_weights_lines.png",
+    )
+    plot_weights_heatmap(
+        w_angles,
+        title="Part A.1 — PDM (angles) pioneer weights heatmap",
+        filename="part_a1_pioneer_weights_heatmap.png",
+    )
+
+    # A.1(c) compact summary table
+    nonzero_summary = brief_nonzero_summary(w_angles)
+    save_table(nonzero_summary, "part_a1_nonzero_summary")
+
+    print("\nA.1 — Non-zero pioneer weight summary")
+    print(nonzero_summary.round(4).to_string())
+
+    # A.2(a)
+    avg_by_period = compute_average_weights_by_period(w_angles, PERIODS)
+    avg_by_period = avg_by_period.sort_values(by=list(avg_by_period.columns), ascending=False)
+    save_table(avg_by_period, "part_a2_average_weights_by_period")
+
+    print("\nA.2 — Average pioneer weights by subperiod")
+    print(avg_by_period.round(4).to_string())
+
+    # A.2(b)
+    ranks = rank_table(avg_by_period)
+    save_table(ranks, "part_a2_ranks_by_period")
+
+    print("\nA.2 — Ranking by subperiod (1 = highest pioneer weight)")
+    print(ranks.to_string())
+
+    return {
+        "w_angles": w_angles,
+        "a1_nonzero_summary": nonzero_summary,
+        "a2_avg_by_period": avg_by_period,
+        "a2_ranks": ranks,
+    }
+
+
+# =============================================================================
+# PART B — PREDICTING UKRAINE'S INFLATION TRAJECTORY
+# =============================================================================
+
+def rolling_dominant_pioneer_against_ua(
+    panel: pd.DataFrame,
+    eu_cols: list[str],
+    target: str = "UA",
+    window: int = 24,
+) -> tuple[pd.DataFrame, pd.Series]:
+    """
+    Rolling pioneer detection relative to Ukraine.
+
+    Interpretation used here:
+    - For each EU country i, build a 2-column panel [i, UA] over a rolling window.
+    - Compute PDM angles on that 2-series window.
+    - At the last date of the window, keep the pioneer weight of country i.
+    - Compare those EU-country weights across i and keep the dominant pioneer.
+
+    This is the cleanest way to make 'relative to Ukraine' explicit.
+    """
+    dates = panel.index[window - 1 :]
+    rel_weights = pd.DataFrame(index=dates, columns=eu_cols, dtype=float)
+
+    for end_idx in range(window - 1, len(panel)):
+        win = panel.iloc[end_idx - window + 1 : end_idx + 1]
+        current_date = win.index[-1]
+
+        for country in eu_cols:
+            pair = win[[country, target]].dropna()
+            if len(pair) < 3:
+                rel_weights.loc[current_date, country] = np.nan
+                continue
+
+            pair_w = compute_pioneer_weights_angles(pair)
+
+            if pair_w.empty:
+                rel_weights.loc[current_date, country] = np.nan
+            else:
+                rel_weights.loc[current_date, country] = pair_w.iloc[-1][country]
+
+    dominant = dominant_country(rel_weights)
+    return rel_weights, dominant
+
+
+def plot_dominant_pioneer(dominant: pd.Series, filename: str) -> None:
+    cats = pd.Categorical(dominant, categories=[c for c in dominant.dropna().unique()], ordered=True)
+    y = pd.Series(cats.codes, index=dominant.index).replace(-1, np.nan)
+
+    plt.figure(figsize=(14, 5))
+    plt.step(dominant.index, y, where="mid")
+    plt.yticks(range(len(cats.categories)), cats.categories)
+    plt.title("Part B.1 — Dominant EU pioneer relative to Ukraine (rolling window)")
+    plt.xlabel("Time")
+    plt.ylabel("Country")
+    plt.tight_layout()
+    plt.savefig(FIG_DIR / filename, dpi=200, bbox_inches="tight")
+    plt.close()
+
+
+def run_part_b(panel: pd.DataFrame) -> dict[str, pd.DataFrame | pd.Series]:
+    print("\n" + "=" * 80)
+    print("PART B — PREDICTING UKRAINE'S INFLATION TRAJECTORY")
+    print("=" * 80)
+
+    eu_panel = panel[EU_COUNTRIES].copy()
+    actual_ua = panel[TARGET].copy()
+
+    # B.1
+    rel_weights, dominant = rolling_dominant_pioneer_against_ua(
+        panel=panel,
+        eu_cols=EU_COUNTRIES,
+        target=TARGET,
+        window=24,
+    )
+    save_table(rel_weights, "part_b1_rolling_relative_weights")
+    dominant.to_frame(name="dominant_pioneer").to_csv(TAB_DIR / "part_b1_dominant_pioneer.csv")
+
+    plot_dominant_pioneer(dominant, filename="part_b1_dominant_pioneer.png")
+
+    dominant_counts = dominant.value_counts(dropna=True).rename("count").to_frame()
+    save_table(dominant_counts, "part_b1_dominant_pioneer_counts")
+
+    print("\nB.1 — Dominant pioneer counts")
+    print(dominant_counts.to_string())
+
+    # B.2
+    forecasts = compute_methods_forecasts(eu_panel)
+
+    rmse_full = {}
+    rmse_periods = {}
+
+    forecast_df = pd.DataFrame(index=panel.index)
+    forecast_df["UA_actual"] = actual_ua
+
+    for method_name, pred in forecasts.items():
+        forecast_df[method_name] = pred
+        rmse_full[method_name] = rmse(actual_ua, pred)
+        rmse_periods[method_name] = rmse_by_subperiod(actual_ua, pred, PERIODS)
+
+    save_table(forecast_df, "part_b2_forecasts_vs_actual")
+
+    rmse_full_df = (
+        pd.Series(rmse_full, name="RMSE_full_sample")
+        .sort_values()
+        .to_frame()
+    )
+    save_table(rmse_full_df, "part_b2_rmse_full_sample")
+
+    rmse_by_period_df = pd.DataFrame(rmse_periods).T
+    rmse_by_period_df["Full sample"] = pd.Series(rmse_full)
+    rmse_by_period_df = rmse_by_period_df.sort_values("Full sample")
+    save_table(rmse_by_period_df, "part_b2_rmse_by_method_and_period")
+
+    print("\nB.2 — RMSE full sample")
+    print(rmse_full_df.round(4).to_string())
+
+    print("\nB.2 — RMSE by method and subperiod")
+    print(rmse_by_period_df.round(4).to_string())
+
+    return {
+        "b1_relative_weights": rel_weights,
+        "b1_dominant": dominant,
+        "b1_dominant_counts": dominant_counts,
+        "b2_forecasts": forecast_df,
+        "b2_rmse_full": rmse_full_df,
+        "b2_rmse_by_period": rmse_by_period_df,
+    }
+
+
+# =============================================================================
+# MAIN
+# =============================================================================
+
+def main() -> None:
+    panel = prepare_panel()
+
+    print("\nComplete-case sample")
+    print(f"Start: {panel.index.min().date()}")
+    print(f"End  : {panel.index.max().date()}")
+    print(f"Shape: {panel.shape}")
+    print(f"Columns: {list(panel.columns)}")
+
+    part_a_results = run_part_a(panel)
+    part_b_results = run_part_b(panel)
+
+    print("\n" + "=" * 80)
+    print("FILES WRITTEN")
+    print("=" * 80)
+    print(f"Output directory: {OUTPUT_DIR}")
+    print(f"Figures         : {FIG_DIR}")
+    print(f"Tables          : {TAB_DIR}")
+
+    print("\nDone.")
+
+
+
+# =========================
+# PART A — INTERPRETATION
+# =========================
+
+# A.1(c) — Pioneer weights over time
+# Pioneer weights are sparse and episodic rather than persistent.
+# No country appears as a stable pioneer over the full sample.
+# High weights occur in short bursts, suggesting temporary leadership
+# rather than structural dominance.
+
+# A.1(d) — Low inflation periods
+# During low-inflation periods, strong pioneers are less frequent.
+# This is consistent with the PDM logic: when inflation paths across countries
+# are similar and dispersion is low, fewer clear directional leaders emerge.
+
+# A.2(b) — Ranking across subperiods
+# The ranking of pioneer countries changes across subperiods.
+# This indicates that leadership in inflation dynamics is not stable over time
+# and depends on the macroeconomic regime.
+
+# A.2(c) — Economic interpretation
+# Changes in ranking likely reflect structural shifts such as crises,
+# monetary policy changes, or asymmetric shocks across countries.
+# No single country consistently leads inflation dynamics across all periods.
+
+# =========================
+# PART B — INTERPRETATION
+# =========================
+
+# B.1(b) — Dominant pioneer
+# The dominant pioneer changes over time, but Germany clearly dominates overall.
+# It appears far more frequently than other countries, suggesting that
+# Ukrainian inflation is most often preceded by German inflation movements
+# in the rolling-window analysis.
+
+# B.2(c) — Best method (full sample)
+# PDM Distance achieves the lowest RMSE, closely followed by PDM Angles.
+# However, differences across methods are small, so no method strongly dominates.
+
+# B.2(c) — By subperiod
+# The best-performing method varies across subperiods.
+# PDM performs best in some periods, while Granger, Transfer Entropy,
+# or Lagged Correlation outperform it in others.
+# This suggests that model performance is regime-dependent.
+
+# B.2(d) — Limitations
+# This exercise should not be interpreted as true forecasting performance.
+# PDM is designed to detect pioneers, not to optimize predictions.
+# A low RMSE only indicates that the weighted combination of EU inflation
+# tracks Ukrainian inflation reasonably well over the sample.
+# It does not imply causal predictive power, especially in the presence
+# of common shocks and structural breaks.
