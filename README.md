@@ -282,3 +282,58 @@ MIT License.
 ## 9. Contact
 
 For questions, collaborations, or extensions (multi‑agent systems, forecasting, insurance supervision), feel free to open an issue or contact the author.
+
+---
+
+## 10. Final Exam — Counterfactual Ukraine Inflation (QMF 2025–2026)
+
+**Course:** Quantitative Methods in Finance — Master 2 Research  
+**Instructor:** Eric Vansteenberghe (Banque de France & Paris 1 Panthéon-Sorbonne)  
+**Deadline:** 1 May 2026
+
+### Question
+*What would Ukraine's inflation trajectory have looked like had it been a member of the Euro Area?*
+
+### How to run
+
+```bash
+python part_B_counterfactual.py
+```
+
+The script is **fully self-contained and reproducible**. It automatically downloads all external data at first run and caches locally.
+
+### Files
+
+| File | Description |
+|---|---|
+| `part_A_monetary_regime.md` | Part A deliverable — NBU regime chronology 2000–2025 + argument |
+| `part_B_counterfactual.py` | Part B deliverable — full econometric pipeline |
+| `part_B_interpretation.md` | Part B deliverable — standalone interpretation paragraph |
+| `figures/ukraine_counterfactual_inflation.png` | Output figure |
+
+### Data sources
+
+| Variable | Source | File |
+|---|---|---|
+| HICP YoY% — 11 EA countries | ECB Data Portal | `data_ecb_hicp_panel.csv` |
+| Ukraine CPI (MoM index) | State Statistics Service of Ukraine (SSSU) via SDMX | `data_ukraine_cpi_raw.csv` |
+| UAH/USD exchange rate (daily) | National Bank of Ukraine open API | `data_nbu_uahusd.csv` (auto-downloaded) |
+| Ukraine real GDP growth (annual) | World Bank Open Data — NY.GDP.MKTP.KD.ZG | `data_wb_ukraine_gdp.csv` (auto-downloaded) |
+
+### Methods
+
+**Part A** — Documented chronology of NBU exchange rate regimes (2000–2025) with IMF de facto classification, devaluation episodes, capital controls, and inflation-targeting transition.
+
+**Part B** — Three complementary counterfactuals:
+
+1. **Primary: Part A–consistent trivariate SVAR** `[π_EA, Δlog(e), π_UKR]` with Cholesky identification (EA block-exogenous). Counterfactual: fix exchange rate at zero (`Δe = 0`, euro irrevocably fixed) and eliminate Ukraine idiosyncratic monetary shock (`ε_UKR = 0`). Treatment intensity is time-varying `w(t)` calibrated from the Part A regime chronology — smaller during dollar-peg periods (already anchored), larger during devaluation crises and the inflation-targeting period.
+
+2. **Alternative: bivariate VAR** `[π_EA, π_UKR]` — ε_UKR = 0 (simpler benchmark).
+
+3. **Robustness: Ciccarelli–Mojon (2010) common factor** — PCA on 11-country HICP panel, `λ̂` calibrated on IT period 2016–2021. Lower bound (full ECB credibility import).
+
+### Key references
+- Bayoumi & Eichengreen (1993); Blanchard & Quah (1989) — SVAR identification
+- Ciccarelli & Mojon (2010) — common inflation factor
+- Calvo & Reinhart (2002) — fear of floating / time-varying treatment
+- Barro & Gordon (1983); Giavazzi & Pagano (1988) — credibility channel
