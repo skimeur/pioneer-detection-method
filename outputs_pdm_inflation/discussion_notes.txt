@@ -1,0 +1,25 @@
+Short discussion of results
+============================
+
+Part A — Economic interpretation draft
+-------------------------------------
+During 2002-2007, pioneers still appear in a non-negligible share of months, but the signals should be interpreted cautiously because low dispersion makes strong directional convergence harder to identify.
+
+Top countries in I (2002-07): IT (0.112), ES (0.110), GR (0.107).
+Top countries in II (2008-12): UA (0.107), AT (0.095), FI (0.085).
+Top countries in III (2013-19): AT (0.091), FI (0.082), FR (0.070).
+Top countries in IV (2020-21): AT (0.119), DE (0.113), UA (0.085).
+Top countries in V (2022-23): BE (0.211), GR (0.126), NL (0.115).
+Top countries in VI (2024-25): FI (0.174), BE (0.147), FR (0.113).
+
+Economic interpretation can focus on differences in energy exposure, import dependence, trade openness, financial transmission, and geographic proximity to common shocks. Countries that import energy more intensively or are hit earlier by supply-chain and regional shocks may receive higher pioneer weights in crisis periods.
+
+Part B — Forecasting analogy draft
+----------------------------------
+The lowest full-sample RMSE is obtained by PDM_distance (14.2187). This only means that the pooled EU inflation signal produced by this method tracks Ukrainian inflation relatively well in-sample. It does not prove that the method is a true forecasting model or that it identifies structural causes of Ukrainian inflation.
+The exercise itself warns that PDM was designed to detect pioneers and accelerate collective learning, not to optimize forecasts. RMSE therefore captures tracking performance, not causal validity. Results may also depend on revisions, window choice, lag structure, and the fact that Ukraine is measured with a national CPI transformed to y/y inflation rather than a harmonised HICP series.
+
+Part B.1 assumption used here
+-----------------------------
+Rolling pioneer detection is based on pairwise country-UA PDM computations over a 24-month window. This is an explicit target-specific assumption made because the wording 'relative to Ukraine' is otherwise ambiguous.
+Most frequent dominant pioneers: AT (82.1%), DE (4.3%), BE (4.3%), FI (3.6%), ES (2.1%).
