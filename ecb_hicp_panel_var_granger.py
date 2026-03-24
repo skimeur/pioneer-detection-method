@@ -69,12 +69,42 @@ Notes
 
 
 
+import os
 import requests
 import pandas as pd
 from io import StringIO
 import numpy as np
-import pandas as pd
 import matplotlib.pyplot as plt
+
+# Directory where this script lives (CSV caches are stored next to it)
+_SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+
+def fetch_or_fallback(fetch_fn, csv_path, index_col=None):
+    """
+    Try fetch_fn() to get a fresh DataFrame.  On success, save to csv_path
+    if the new data has at least as many rows as the cached file.
+    On failure, load from csv_path.  If no cache exists either, re-raise.
+    """
+    csv_path = os.path.join(_SCRIPT_DIR, csv_path)
+    try:
+        fresh = fetch_fn()
+        # Compare with existing cache
+        if os.path.exists(csv_path):
+            cached = pd.read_csv(csv_path, index_col=index_col)
+            if len(fresh) >= len(cached):
+                fresh.to_csv(csv_path)
+                print(f"[cache] Updated {os.path.basename(csv_path)} ({len(fresh)} rows)")
+            else:
+                print(f"[cache] Kept existing {os.path.basename(csv_path)} ({len(cached)} rows >= {len(fresh)} fresh)")
+        else:
+            fresh.to_csv(csv_path)
+            print(f"[cache] Created {os.path.basename(csv_path)} ({len(fresh)} rows)")
+        return fresh
+    except Exception as e:
+        print(f"[cache] Fetch failed ({e}), loading from {os.path.basename(csv_path)}")
+        if os.path.exists(csv_path):
+            return pd.read_csv(csv_path, index_col=index_col)
+        raise
 
 from statsmodels.tsa.stattools import adfuller, kpss, acf, pacf
 from statsmodels.stats.diagnostic import acorr_ljungbox
@@ -162,11 +192,15 @@ def fetch_ecb_hicp_inflation_panel(
 # Example usage
 # -------------------------
 countries = ["DE", "FR", "IT", "ES", "NL", "BE", "AT", "PT", "IE", "FI", "GR"]
-infl_panel, infl_long = fetch_ecb_hicp_inflation_panel(
-    countries=countries,
-    start="2000-01",
-    end="2025-12"   # optional
-)
+
+def _fetch_ecb():
+    panel, _ = fetch_ecb_hicp_inflation_panel(
+        countries=countries, start="2000-01", end="2025-12"
+    )
+    return panel
+
+infl_panel = fetch_or_fallback(_fetch_ecb, "data_ecb_hicp_panel.csv", index_col=0)
+
 
 # -----------------------------------
 # Fetch Ukraine inflation time series
@@ -208,11 +242,11 @@ def fetch_ukraine_cpi_prev_month_raw(
     return raw
 
 
-# Example
-ua_raw = fetch_ukraine_cpi_prev_month_raw(start="2000-01", end="2025-12")
+def _fetch_ua():
+    return fetch_ukraine_cpi_prev_month_raw(start="2000-01", end="2025-12")
+
+ua_raw = fetch_or_fallback(_fetch_ua, "data_ukraine_cpi_raw.csv")
 print(ua_raw.head())
-print(ua_raw["TIME_PERIOD"].unique()[:12])
-print(ua_raw["OBS_VALUE"].unique()[:12])
 
 
 
@@ -388,4 +422,3 @@ print(f"Selected lag order p = {p}")
 var_res = model.fit(p)
 print("\n=== VAR estimation results ===")
 print(var_res.summary())
-

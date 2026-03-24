@@ -1,0 +1,680 @@
+\documentclass[11pt,a4paper]{article}
+
+%% ── Packages ──────────────────────────────────────────────────────────────
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[english]{babel}
+\usepackage{geometry}
+\geometry{margin=2.5cm}
+\usepackage{parskip}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\hypersetup{colorlinks=true, linkcolor=blue!60!black, urlcolor=blue!60!black, citecolor=blue!60!black}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{amsmath,amssymb}
+\usepackage{natbib}
+\usepackage{xcolor}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{tabularx}
+
+%% ── Page style ────────────────────────────────────────────────────────────
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{\small Quantitative Methods in Finance --- Final Exam 2025--2026}
+\rhead{\small Master 2 Research}
+\cfoot{\thepage}
+
+\titleformat{\section}{\large\bfseries}{\thesection.}{0.5em}{}
+\titleformat{\subsection}{\normalsize\bfseries}{\thesubsection.}{0.5em}{}
+
+%% ── Title ─────────────────────────────────────────────────────────────────
+\title{%
+  \vspace{-1.5cm}
+  {\large Quantitative Methods in Finance}\\[0.3em]
+  {\Large\bfseries Final Exam --- Take-Home}\\[0.3em]
+  {\large\itshape Counterfactual Inflation Analysis:\\
+   What If Ukraine Had Been Part of the Euro Area?}
+}
+\author{%
+  Eric Vansteenberghe\\[0.2em]
+  \small Banque de France \& Universit\'{e} Paris 1 Panth\'{e}on-Sorbonne
+}
+\date{Academic Year 2025--2026}
+
+\begin{document}
+\maketitle
+\thispagestyle{fancy}
+
+%% ══════════════════════════════════════════════════════════════════════════
+\section*{Context and Motivation}
+%% ══════════════════════════════════════════════════════════════════════════
+
+On 23 June 2022, the European Council granted Ukraine official candidate status
+for accession to the European Union. While EU membership and Euro Area
+membership are distinct steps---separated by years of institutional convergence
+and the fulfilment of the Maastricht criteria---the question of whether Ukraine
+could eventually adopt the euro is no longer purely hypothetical. It is a
+question that central banks, including the ECB and the national central banks of
+the Eurosystem, will increasingly need to assess.
+
+This exam asks you to engage with a foundational question at the intersection of
+monetary economics and applied econometrics:
+
+\begin{center}
+\itshape
+What would Ukraine's inflation trajectory have looked like\\
+had it been a member of the Euro Area?
+\end{center}
+
+This is a \textbf{counterfactual} question. Ukraine was never in the Euro Area;
+it maintained its own currency (the hryvnia), its own central bank (the National
+Bank of Ukraine, NBU), and its own monetary policy throughout the sample period.
+Your task is to construct a plausible alternative inflation path for Ukraine
+under the hypothetical scenario of Euro Area membership, using the econometric
+methods studied in this course.
+
+%% ══════════════════════════════════════════════════════════════════════════
+\section*{Why This Question Matters}
+%% ══════════════════════════════════════════════════════════════════════════
+
+The academic literature on \textbf{Optimal Currency Areas} (OCA), initiated by
+\citet{mundell1961} and extended by \citet{mckinnon1963} and \citet{kenen1969},
+identifies the fundamental trade-off faced by a country considering membership in
+a monetary union: the \emph{loss of independent monetary and exchange-rate
+policy} versus the \emph{gains from reduced transaction costs, price
+transparency, and imported monetary credibility}.
+
+For Ukraine, this trade-off is particularly stark. Consider the following
+channels through which Euro Area membership would have reshaped the inflation
+process:
+
+\begin{enumerate}[leftmargin=2em]
+
+  \item \textbf{Loss of the exchange-rate buffer.}
+  Ukraine experienced three major hryvnia devaluations: approximately $-50\%$
+  against the US dollar in 2008--2009 (global financial crisis), over $-200\%$
+  in 2014--2015 (Crimea annexation and Donbas conflict), and approximately
+  $-25\%$ in 2022 (full-scale invasion). These devaluations were a critical
+  adjustment mechanism. Under Euro Area membership, this channel would have been
+  \emph{unavailable}. The real adjustment would have had to occur through
+  internal devaluation---wage and price deflation---as experienced by Greece,
+  Ireland, and the Baltic states during the 2010--2012 sovereign debt crisis.
+
+  \item \textbf{Imported monetary credibility.}
+  The ECB's inflation-targeting framework and institutional independence provide
+  a nominal anchor that the NBU has historically lacked. Before the adoption of
+  inflation targeting in 2016, Ukraine operated under various exchange-rate and
+  monetary-aggregate regimes with limited credibility, leading to persistent
+  inflation expectations well above Euro Area levels. Euro Area membership would
+  have \emph{imported} the ECB's credibility, likely anchoring inflation
+  expectations at lower levels---the so-called \citet{frankel_rose1998}
+  endogeneity hypothesis, whereby joining a currency union makes a country
+  \emph{more} suitable for it ex post.
+
+  \item \textbf{One monetary policy for heterogeneous shocks.}
+  The ECB sets a single policy rate for the entire Euro Area. Ukraine's economy
+  is structurally different from the Euro Area core: it is more exposed to
+  energy-price shocks (historically dependent on Russian natural gas), more
+  reliant on agricultural commodity exports, and subject to geopolitical shocks
+  that are largely asymmetric---i.e., they do not affect Euro Area members
+  similarly. A single monetary policy calibrated for the Euro Area aggregate
+  might not have been \textit{optimal} for Ukraine's specific
+  conditions.
+
+  \item \textbf{Fiscal discipline and the Stability and Growth Pact.}
+  Euro Area membership comes with fiscal constraints (the 3\% deficit and 60\%
+  debt-to-GDP rules, however imperfectly enforced). These constraints would have
+  limited Ukraine's ability to use fiscal policy as a substitute for the lost
+  monetary-policy and exchange-rate instruments---amplifying the cost of
+  asymmetric shocks but potentially reducing the inflation bias associated with
+  deficit monetisation.
+
+  \item \textbf{Financial integration and capital flows.}
+  Euro Area membership would have eliminated currency risk for foreign investors,
+  likely resulting in lower sovereign borrowing costs and larger capital inflows
+  \emph{in normal times}---but also removing the ability to impose capital
+  controls or let the exchange rate depreciate during sudden stops, as Ukraine
+  did in 2008--2009, 2014--2015, and 2022.
+
+\end{enumerate}
+
+The counterfactual you construct is therefore not merely a statistical exercise.
+It embodies a set of \textbf{structural hypotheses} about how the inflation
+process would have differed under an alternative monetary regime. The quality of
+your answer depends on how explicitly and coherently you operationalise these
+hypotheses in your econometric framework.
+
+
+%% ══════════════════════════════════════════════════════════════════════════
+\section*{Part A --- Ukraine's Monetary Regime: A Preliminary Analysis (30\%)}
+%% ══════════════════════════════════════════════════════════════════════════
+
+Before constructing a counterfactual, you must understand \emph{what Ukraine
+actually did} with its monetary sovereignty. A na\"{\i}ve framing assumes
+Ukraine operated under a freely floating exchange rate with full monetary policy
+independence throughout the sample period. This is incorrect.
+
+\subsection*{Task}
+
+Construct a \textbf{documented chronology} of the National Bank of Ukraine's
+exchange rate regime from 2000 to 2025. Your chronology must identify:
+
+\begin{enumerate}[label=(\alph*), leftmargin=2em]
+
+  \item The periods during which the NBU maintained a \textbf{de facto peg} to
+  the US dollar (and the approximate level of the peg);
+
+  \item The \textbf{major devaluation episodes}, with approximate dates,
+  magnitudes, and triggers;
+
+  \item The periods during which significant \textbf{capital controls} were in
+  place;
+
+  \item The transition to \textbf{inflation targeting} (official date, target
+  path, and whether the NBU's behaviour actually changed in practice);
+
+  \item For each period, your assessment of the \textbf{IMF's de facto
+  classification} of Ukraine's exchange rate arrangement (stabilised
+  arrangement, managed float, conventional peg, etc.).
+
+\end{enumerate}
+
+\subsection*{Deliverables for Part~A}
+
+\begin{enumerate}[label=\textbf{\arabic*.}, leftmargin=2em]
+
+  \item A \textbf{summary table} with columns: period, approximate UAH/USD
+  rate, de facto regime classification, and key events.
+
+  \item A \textbf{brief argument} (one paragraph, in your code or a separate
+  text file) answering: \emph{During which periods did Ukraine have genuine
+  monetary sovereignty? During which periods was its monetary policy de facto
+  constrained by the exchange-rate peg? What does this imply for the
+  ``treatment'' that Euro Area membership would represent?}
+
+\end{enumerate}
+
+\subsection*{Why this matters}
+
+This preliminary analysis is not optional background---it is central to your
+identification strategy in Part~B. If Ukraine was already operating a de facto
+dollar peg for most of the sample, then Euro Area membership would not have
+represented a large change in monetary regime during the peg periods. The
+``treatment'' of joining the Euro Area is concentrated in the episodes where
+Ukraine \emph{deviated} from its peg---the devaluations and the post-2016
+inflation-targeting period. Your counterfactual must reflect this asymmetry.
+
+\paragraph{Sources.} You should consult IMF as well as NBU publications and academic sources. Cite your sources.
+
+
+%% ══════════════════════════════════════════════════════════════════════════
+\section*{Data}
+%% ══════════════════════════════════════════════════════════════════════════
+
+\subsection*{Repository data}
+
+The following datasets are available in the GitHub repository:
+
+\begin{center}
+\url{https://github.com/skimeur/pioneer-detection-method}
+\end{center}
+
+\begin{itemize}[leftmargin=2em]
+  \item \texttt{data\_ecb\_hicp\_panel.csv} --- Monthly Harmonised Index of
+    Consumer Prices (HICP), year-on-year percentage change, for 11 Euro Area
+    countries (Austria, Belgium, Germany, Spain, Finland, France, Greece,
+    Ireland, Italy, Netherlands, Portugal), from January 2000 to December 2025.
+    Source: ECB Data Portal.
+    \begin{itemize}
+    \item Nota bene: you might need to augment this list of countries if you do a synthetic control.
+    \end{itemize}
+
+  \item \texttt{data\_ukraine\_cpi\_raw.csv} --- Monthly Consumer Price Index
+    for Ukraine, expressed as an \textbf{index with the previous month as base}
+    (i.e., a value of 101.5 means prices rose 1.5\% month-on-month), from
+    February 2005 to December 2025. Source: State Statistics Service of Ukraine
+    (SSSU) via SDMX.
+\end{itemize}
+
+\paragraph{Important note on data harmonisation.}
+The two datasets are \emph{not} in the same format. The Euro Area data are
+year-on-year inflation rates (\%), while the Ukrainian data are month-on-month
+price indices. You will need to transform the Ukrainian series into year-on-year
+inflation rates to make it comparable with the Euro Area panel.
+
+\subsection*{External data: a mandatory requirement}
+
+\textbf{You are required to augment the repository data with additional
+macroeconomic time series from external sources.} The methods studied in this
+course---structural VARs, local projections---require variables beyond inflation
+alone. At a minimum, you should consider sourcing:
+
+\begin{itemize}[leftmargin=2em]
+  \item \textbf{Real GDP or industrial production} for Ukraine and Euro Area
+    countries (quarterly or monthly), from Eurostat, the IMF's International
+    Financial Statistics (IFS), or the World Bank;
+  \item \textbf{Exchange rate series} (UAH/USD, UAH/EUR) from the NBU or IMF;
+  \item Any other macroeconomic variables your identification strategy requires
+    (policy rates, commodity prices, fiscal balances, etc.).
+\end{itemize}
+
+The quality, relevance, and documentation of your external data choices are
+\textbf{part of the grading}. You must cite your data sources and explain why
+each variable is needed for your econometric framework.
+
+
+%% ══════════════════════════════════════════════════════════════════════════
+\section*{Key Literature for the Counterfactual}
+%% ══════════════════════════════════════════════════════════════════════════
+
+The following papers are selected not as a general reading list, but as
+\textbf{direct methodological inputs} to the construction of your
+counterfactual. Each one offers a specific tool, identification strategy, or
+conceptual framework that you can adapt. You are not required to read all of
+them---choose those relevant to your chosen approach.
+
+
+%% ── 1. Shock decomposition ───────────────────────────────────────────────
+\subsection*{Structural shock decomposition: Bayoumi and Eichengreen (1993)}
+
+\citet{bayoumi_eichengreen1993} estimate bivariate structural VARs (output
+growth, inflation) for pairs of countries, using the \citet{blanchard_quah1989}
+long-run identification: supply shocks have permanent effects on output, demand
+shocks do not. They then compare the \emph{correlation of structural shocks}
+across countries to assess OCA suitability, distinguishing a European ``core''
+(whose shocks are symmetric) from a ``periphery'' (whose shocks are
+idiosyncratic).
+
+\paragraph{How to use it for the counterfactual.}
+You can replicate the Bayoumi--Eichengreen decomposition for Ukraine and each
+Euro Area country, then construct the counterfactual via \emph{shock
+replacement}: if Ukraine had been in the Euro Area, its \textbf{demand shocks}
+would have been determined by ECB monetary policy (i.e., the Euro Area aggregate
+demand shocks), while its \textbf{supply shocks}---driven by real factors
+(energy prices, agriculture, geopolitics)---would have remained its own. The
+counterfactual inflation path is obtained by feeding Ukraine's supply shocks and
+the Euro Area's demand shocks through Ukraine's (or the Euro Area's) estimated
+impulse response functions. This requires both output and inflation data, which
+is why external data sourcing is mandatory.
+
+
+%% ── 2. Common factor ─────────────────────────────────────────────────────
+\subsection*{Common inflation factors: Ciccarelli and Mojon (2010)}
+
+\citet{ciccarelli_mojon2010} show that a large fraction of inflation variation
+across countries can be explained by a single common factor, which they
+interpret as ``global inflation.'' Their approach extracts a common component
+from a panel of inflation series using dynamic factor model techniques
+(principal components or state-space estimation).
+
+\paragraph{How to use it for the counterfactual.}
+Estimate the Euro Area common inflation factor from the panel of 11 countries.
+Then model Ukraine's inflation as:
+\[
+  \pi_{UKR,t} \;=\; \lambda_{UKR}\, F_t^{EA} \;+\; \varepsilon_{UKR,t}
+\]
+where $F_t^{EA}$ is the Euro Area common factor, $\lambda_{UKR}$ is Ukraine's
+loading on that factor (estimated from ``quiet'' periods when Ukraine's
+inflation co-moved with Europe), and $\varepsilon_{UKR,t}$ is the
+Ukraine-specific residual. The counterfactual ``Ukraine-in-the-Euro-Area''
+inflation is $\hat{\pi}_{UKR,t}^{CF} = \hat{\lambda}_{UKR}\, \hat{F}_t^{EA}$:
+only the common European component, without the idiosyncratic shocks that
+Ukraine's own monetary policy and exchange rate produced. This is a panel
+method that can be implemented with the inflation data alone; adding
+macroeconomic covariates strengthens identification.
+
+
+%% ── 3. Synthetic control ─────────────────────────────────────────────────
+\subsection*{Synthetic control: Abadie, Diamond, and Hainmueller (2010)}
+
+\citet{abadie_diamond_hainmueller2010} propose constructing a ``synthetic''
+version of a treated unit as a convex combination of untreated donor units,
+with weights chosen to match the treated unit's pre-treatment trajectory.
+
+\paragraph{A difficulty for this exercise.}
+In the classic synthetic control setup, there is a clean treatment date (before
+which the treated unit and its synthetic counterpart should track each other,
+and after which they diverge). For Ukraine, \textbf{there is no clean treatment
+date}: Ukraine never joined the Euro Area, so there is no before/after. You may
+attempt to invert the logic---treating Ukraine's \emph{absence} from the Euro
+Area as the treatment---but this requires careful conceptual justification.
+
+\paragraph{A note on recent Euro Area accessions.}
+Since 1999, ten countries have adopted the euro. Several of them---particularly
+among the post-Soviet Baltic states---share structural features with Ukraine
+(small, open, post-Soviet economies with a history of exchange-rate pegs).
+Their accession dates and pre/post inflation paths may contain useful
+information for your analysis:
+
+\begin{center}
+\small
+\begin{tabular}{llll}
+\toprule
+\textbf{Country} & \textbf{EU accession} & \textbf{Euro adoption} & \textbf{Notes} \\
+\midrule
+Greece    & 1981  & 1 Jan 2001 & Debt crisis 2010--2015 \\
+Slovenia  & 2004  & 1 Jan 2007 & First 2004-enlargement country \\
+Cyprus    & 2004  & 1 Jan 2008 & Banking crisis 2012--2013 \\
+Malta     & 2004  & 1 Jan 2008 & Small island economy \\
+Slovakia  & 2004  & 1 Jan 2009 & Adopted euro during GFC \\
+Estonia   & 2004  & 1 Jan 2011 & Post-Soviet; currency board pre-euro \\
+Latvia    & 2004  & 1 Jan 2014 & Post-Soviet; severe 2008--09 recession \\
+Lithuania & 2004  & 1 Jan 2015 & Post-Soviet; last Baltic to join \\
+Croatia   & 2013  & 1 Jan 2023 & De facto euro-linked kuna pre-adoption \\
+Bulgaria  & 2007  & 1 Jan 2026 & Currency board since 1997 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+
+%% ── 4. Fear of floating ──────────────────────────────────────────────────
+\subsection*{Constrained sovereignty: Calvo and Reinhart (2002)}
+
+\citet{calvo_reinhart2002} document that many countries that officially declare
+a floating exchange rate in practice intervene heavily to limit exchange-rate
+movements---a pattern they call ``fear of floating.'' The implication is that
+\emph{de jure} monetary sovereignty can be very different from \emph{de facto}
+monetary sovereignty.
+
+\paragraph{Why this is critical for Ukraine.}
+As your Part~A analysis should reveal, the NBU maintained a de facto peg to the
+US dollar for most of the period 2000--2014, and returned to a fixed rate under
+wartime conditions in 2022--2023. During peg periods, Ukraine had \emph{no
+independent monetary policy} in practice---the ``impossible trinity'' was
+binding. This means that the counterfactual ``treatment'' of Euro Area
+membership is \textbf{not constant over time}: it is large during episodes when
+Ukraine exercised genuine monetary autonomy (the devaluations, the post-2016
+inflation-targeting period) and small during peg periods (when monetary policy
+was already subordinated to the exchange-rate anchor). Your identification
+strategy should account for this time-varying treatment intensity.
+
+
+%% ── 5. Credibility ──────────────────────────────────────────────────────
+\subsection*{Credibility import: Giavazzi and Pagano (1988); Barro and Gordon (1983)}
+
+\citet{giavazzi_pagano1988} argue that countries with weak monetary credibility
+can ``tie their hands'' by joining a fixed exchange-rate arrangement (or a
+monetary union), importing the credibility of the anchor country's central
+bank. \citet{barro_gordon1983} provide the theoretical foundation: under
+discretion, a central bank faces a time-consistency problem that generates an
+inflation bias; an external commitment device eliminates this bias.
+
+\paragraph{Relevance for Ukraine.}
+The NBU's credibility was low before 2016 (no formal inflation target, repeated
+peg collapses). After adopting inflation targeting in 2016, credibility improved
+but remained fragile. A \textbf{sanity check} for your counterfactual: the gap
+between actual Ukrainian inflation and your counterfactual Euro Area path
+should be \emph{larger} in the pre-2016 period (when credibility gains from Euro
+Area membership would have been substantial) and potentially \emph{smaller}
+after 2016 (when the NBU had partially converged toward a modern
+inflation-targeting framework). If your counterfactual does not exhibit this
+pattern, reconsider your assumptions.
+
+
+%% ── 6. Sovereign fragility ──────────────────────────────────────────────
+\subsection*{Sovereign fragility in monetary unions: De~Grauwe (2012)}
+
+\citet{degrauwe2012} argues that members of a monetary union are uniquely
+vulnerable to self-fulfilling sovereign debt crises, because they cannot rely
+on their own central bank as a lender of last resort in the currency of
+denomination. This fragility was illustrated by the sovereign spreads divergence
+in 2010--2012 and the eventual need for the ECB's Outright Monetary
+Transactions (OMT) programme.
+
+\paragraph{Relevance for Ukraine.}
+Had Ukraine been in the Euro Area during the 2014 or 2022 crises, it would have
+avoided a \emph{currency crisis} but might have faced a \emph{sovereign debt
+crisis} instead---with no national central bank to provide emergency liquidity.
+The counterfactual is therefore not simply ``lower inflation'' but potentially
+``a different type of macroeconomic crisis.'' This is not a required modelling
+element, but acknowledging this channel in your interpretation will demonstrate
+deeper understanding of the trade-offs.
+
+
+%% ══════════════════════════════════════════════════════════════════════════
+\section*{Part B --- The Counterfactual (50\%)}
+%% ══════════════════════════════════════════════════════════════════════════
+
+Using the methods studied in this course---and any additional econometric tools
+you deem appropriate---construct a counterfactual inflation time series for
+Ukraine under the hypothesis that it had been a member of the Euro Area.
+
+\subsection*{Deliverables for Part~B}
+
+\begin{enumerate}[label=\textbf{\arabic*.}, leftmargin=2em]
+
+  \item \textbf{A single figure} showing two time series on the same axes:
+  \begin{itemize}
+    \item Ukraine's \emph{actual} year-on-year inflation (computed from the raw data);
+    \item Your \emph{counterfactual} ``Ukraine-in-the-Euro-Area'' inflation.
+  \end{itemize}
+  The figure should be clearly labelled, with a legend, axis titles, and
+  appropriate date formatting.
+
+  \item \textbf{A brief interpretation} (one paragraph) answering: \emph{What
+  does your counterfactual imply about the cost or benefit of monetary
+  sovereignty for Ukraine, particularly during the 2008--2009, 2014--2015, and
+  2022 crises?}
+
+  \item \textbf{Your code}, which must be fully reproducible. All external data
+  must either be downloaded programmatically within your code or provided
+  alongside it with clear documentation.
+
+\end{enumerate}
+
+\subsection*{Methodological requirements}
+
+\begin{itemize}[leftmargin=2em]
+
+  \item Your method must reflect an \textbf{explicit identification strategy}:
+  you must articulate (through your code structure and comments) what ``being in
+  the Euro Area'' means in terms of your model's parameters, shocks, or
+  constraints.
+
+  \item \textbf{Your counterfactual must differ from the simple cross-sectional
+  mean of Euro Area countries' inflation.} This constraint ensures that your
+  approach involves genuine econometric reasoning rather than a mechanical
+  average.
+
+  \item Your identification strategy must be \textbf{consistent with your
+  Part~A analysis}. If you found that Ukraine had no genuine monetary
+  sovereignty during peg periods, your counterfactual should reflect a smaller
+  ``treatment effect'' during those periods.
+
+  \item You are expected to use \textbf{structural VARs, local projections, or
+  comparable methods} studied in this course. You may complement them with panel
+  methods (factor models, synthetic control), but the core of your analysis
+  should demonstrate mastery of the SVAR/LP toolkit.
+
+\end{itemize}
+
+
+%% ══════════════════════════════════════════════════════════════════════════
+\section*{Grading Criteria}
+%% ══════════════════════════════════════════════════════════════════════════
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{lrX}
+\toprule
+\textbf{Component} & \textbf{Weight} & \textbf{Criteria} \\
+\midrule
+\textbf{Part A:} Monetary regime & 30\% &
+  Accuracy of the chronology; quality of sources; coherence of the argument
+  about which periods represent genuine monetary sovereignty; correct
+  identification of de facto vs.\ de jure regimes. \\[0.8em]
+\textbf{Part B:} Identification & 30\% &
+  Is the counterfactual grounded in a coherent economic and econometric
+  framework? Are the assumptions explicit? Does the method go beyond mechanical
+  projection? Is it consistent with Part~A? \\[0.8em]
+\textbf{Part B:} Technical execution & 20\% &
+  Is the code correct, reproducible, and well-structured? Is the data
+  transformation handled properly? Are estimation choices (lag selection,
+  stationarity testing, external data sourcing) justified? \\[0.8em]
+\textbf{Part B:} Output and interpretation & 20\% &
+  Is the figure informative and professionally presented? Does the
+  counterfactual exhibit plausible dynamics? Does the interpretation demonstrate
+  economic understanding of the OCA trade-offs? \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+
+%% ══════════════════════════════════════════════════════════════════════════
+\section*{Practical Information}
+%% ══════════════════════════════════════════════════════════════════════════
+
+\begin{itemize}[leftmargin=2em]
+  \item \textbf{Format:} take-home exam, individual work.
+  \item \textbf{Duration:} you have until \textbf{1st of May 2026} to submit.
+  \item \textbf{Submission:} upload your code, output figure(s), and Part~A
+    deliverables to \textbf{GitHub}.
+  \item \textbf{Language:} any programming language (Python, R, Julia,
+    MATLAB, \ldots). The code must run from the repository data and your
+    documented external data without manual intervention.
+  \item \textbf{External data:} all external datasets must be either
+    (a)~downloaded programmatically within your code, or (b)~provided as files
+    alongside your submission with full source documentation.
+  \item \textbf{Collaboration policy:} this is individual work. You may
+    consult any published reference, documentation, or AI tool, but the
+    econometric reasoning and code must be your own. Identical or
+    near-identical submissions will be treated as plagiarism.
+\end{itemize}
+
+%% ══════════════════════════════════════════════════════════════════════════
+\section*{Suggested References}
+%% ══════════════════════════════════════════════════════════════════════════
+
+The following references supplement those discussed in the literature section
+above. Choose those relevant to your chosen method.
+
+\begin{description}[leftmargin=1em, style=nextline]
+
+  \item[Optimal Currency Areas]
+  \citet{mundell1961}; \citet{mckinnon1963}; \citet{kenen1969};
+  \citet{frankel_rose1998}.
+
+  \item[Structural VARs and local projections]
+  \citet{sims1980}; \citet{blanchard_quah1989}; \citet{stock_watson2001};
+  \citet{jorda2005}; \citet{kilian_lutkepohl2017}.
+
+  \item[Counterfactual methods]
+  \citet{abadie_diamond_hainmueller2010} (synthetic control);
+  \citet{angrist_pischke2009} (DiD and potential outcomes).
+
+  \item[Euro Area inflation dynamics]
+  \citet{ciccarelli_mojon2010}.
+
+  \item[Monetary credibility and exchange-rate regimes]
+  \citet{barro_gordon1983}; \citet{giavazzi_pagano1988};
+  \citet{calvo_reinhart2002}; \citet{degrauwe2012}.
+
+\end{description}
+
+
+%% ══════════════════════════════════════════════════════════════════════════
+%% Bibliography
+%% ══════════════════════════════════════════════════════════════════════════
+
+\begingroup
+\renewcommand{\section}[2]{}  % suppress "References" heading from natbib
+\begin{thebibliography}{99}
+\small
+
+\bibitem[Abadie et~al.(2010)]{abadie_diamond_hainmueller2010}
+Abadie, A., Diamond, A., and Hainmueller, J. (2010).
+\newblock Synthetic control methods for comparative case studies: Estimating the
+  effect of California's tobacco control program.
+\newblock \emph{Journal of the American Statistical Association},
+  105(490):493--505.
+
+\bibitem[Angrist and Pischke(2009)]{angrist_pischke2009}
+Angrist, J.~D. and Pischke, J.-S. (2009).
+\newblock \emph{Mostly Harmless Econometrics: An Empiricist's Companion}.
+\newblock Princeton University Press.
+
+\bibitem[Barro and Gordon(1983)]{barro_gordon1983}
+Barro, R.~J. and Gordon, D.~B. (1983).
+\newblock Rules, discretion and reputation in a model of monetary policy.
+\newblock \emph{Journal of Monetary Economics}, 12(1):101--121.
+
+\bibitem[Bayoumi and Eichengreen(1993)]{bayoumi_eichengreen1993}
+Bayoumi, T. and Eichengreen, B. (1993).
+\newblock Shocking aspects of European monetary integration.
+\newblock In Torres, F. and Giavazzi, F., editors, \emph{Adjustment and Growth
+  in the European Monetary Union}, pages 193--229. Cambridge University Press.
+
+\bibitem[Blanchard and Quah(1989)]{blanchard_quah1989}
+Blanchard, O.~J. and Quah, D. (1989).
+\newblock The dynamic effects of aggregate demand and supply disturbances.
+\newblock \emph{American Economic Review}, 79(4):655--673.
+
+\bibitem[Calvo and Reinhart(2002)]{calvo_reinhart2002}
+Calvo, G.~A. and Reinhart, C.~M. (2002).
+\newblock Fear of floating.
+\newblock \emph{The Quarterly Journal of Economics}, 117(2):379--408.
+
+\bibitem[Ciccarelli and Mojon(2010)]{ciccarelli_mojon2010}
+Ciccarelli, M. and Mojon, B. (2010).
+\newblock Global inflation.
+\newblock \emph{The Review of Economics and Statistics}, 92(3):524--535.
+
+\bibitem[De~Grauwe(2012)]{degrauwe2012}
+De~Grauwe, P. (2012).
+\newblock The governance of a fragile eurozone.
+\newblock \emph{Australian Economic Review}, 45(3):255--268.
+
+\bibitem[Frankel and Rose(1998)]{frankel_rose1998}
+Frankel, J.~A. and Rose, A.~K. (1998).
+\newblock The endogeneity of the optimum currency area criteria.
+\newblock \emph{The Economic Journal}, 108(449):1009--1025.
+
+\bibitem[Giavazzi and Pagano(1988)]{giavazzi_pagano1988}
+Giavazzi, F. and Pagano, M. (1988).
+\newblock The advantage of tying one's hands: EMS discipline and central bank
+  credibility.
+\newblock \emph{European Economic Review}, 32(5):1055--1075.
+
+\bibitem[Jord\`{a}(2005)]{jorda2005}
+Jord\`{a}, \`{O}. (2005).
+\newblock Estimation and inference of impulse responses by local projections.
+\newblock \emph{American Economic Review}, 95(1):161--182.
+
+\bibitem[Kenen(1969)]{kenen1969}
+Kenen, P.~B. (1969).
+\newblock The theory of optimum currency areas: An eclectic view.
+\newblock In Mundell, R.~A. and Swoboda, A.~K., editors, \emph{Monetary
+  Problems of the International Economy}, pages 41--60. University of Chicago
+  Press.
+
+\bibitem[Kilian and L\"{u}tkepohl(2017)]{kilian_lutkepohl2017}
+Kilian, L. and L\"{u}tkepohl, H. (2017).
+\newblock \emph{Structural Vector Autoregressive Analysis}.
+\newblock Cambridge University Press.
+
+\bibitem[McKinnon(1963)]{mckinnon1963}
+McKinnon, R.~I. (1963).
+\newblock Optimum currency areas.
+\newblock \emph{American Economic Review}, 53(4):717--725.
+
+\bibitem[Mundell(1961)]{mundell1961}
+Mundell, R.~A. (1961).
+\newblock A theory of optimum currency areas.
+\newblock \emph{American Economic Review}, 51(4):657--665.
+
+\bibitem[Sims(1980)]{sims1980}
+Sims, C.~A. (1980).
+\newblock Macroeconomics and reality.
+\newblock \emph{Econometrica}, 48(1):1--48.
+
+\bibitem[Stock and Watson(2001)]{stock_watson2001}
+Stock, J.~H. and Watson, M.~W. (2001).
+\newblock Vector autoregressions.
+\newblock \emph{Journal of Economic Perspectives}, 15(4):101--115.
+
+\end{thebibliography}
+\endgroup
+
+\end{document}
