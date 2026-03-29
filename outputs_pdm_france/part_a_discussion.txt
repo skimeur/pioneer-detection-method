@@ -1,0 +1,22 @@
+Part A discussion
+=================
+
+1) Low-inflation years (2002-2007)
+During the Great Moderation, pioneer signals should be weaker because the cross-country inflation dispersion is smaller and structural breaks are rarer. In a PDM framework, this means that the distance-reduction and orientation conditions are less often met simultaneously.
+
+2) Time variation in rankings
+The country ranking is not stable over time: the leading countries differ across crisis periods, low-inflation years, the pandemic shock, the 2022-2023 energy episode, and the later disinflation phase.
+
+3) Countries with the strongest average signals by subperiod
+- I (2002-07): NL (0.166), IT (0.142), BE (0.108)
+- II (2008-12): AT (0.128), NL (0.126), FR (0.120)
+- III (2013-19): FR (0.149), AT (0.128), FI (0.126)
+- IV (2020-21): FI (0.188), AT (0.158), NL (0.129)
+- V (2022-23): BE (0.238), NL (0.145), ES (0.144)
+- VI (2024-25): BE (0.169), FI (0.142), FR (0.117)
+
+4) Economic interpretation
+Countries that are more exposed to external energy shocks, trade re-pricing, logistics bottlenecks, or rapid pass-through from imported prices can appear earlier in the inflation cycle and temporarily act as pioneers. This does not imply a permanent structural leadership: pioneership is episode-specific.
+
+5) Non-zero weight diagnostics
+The attached CSV file reports how frequently each country receives strictly positive pioneer weight and the date of its peak weight. This is useful to distinguish occasional pioneers from countries that almost never lead the cross-section.
