@@ -1,0 +1,48 @@
+cff-version: 1.2.0
+message: "If you use this repository, its code, or the Pioneer Detection Method in your work, please cite the associated article below."
+type: software
+
+title: "Pioneer Detection Method (PDM): Python implementation"
+abstract: >
+  Official Python implementation of the Pioneer Detection Method (PDM), a
+  convergence-based expert-aggregation algorithm for environments with
+  structural change and heterogeneous learning speeds. The method identifies
+  pioneers—experts whose estimates move first in the correct direction and
+  toward whom others converge—and produces dynamic weights for opinion pooling,
+  forecasting under non-stationarity, and collective decision-making in
+  multi-agent systems such as insurance experts, drone swarms, and autonomous
+  vehicles.
+
+authors:
+  - family-names: "Vansteenberghe"
+    given-names: "Eric"
+    orcid: "0009-0004-4566-4043"
+
+keywords:
+  - pioneer detection method
+  - opinion pooling
+  - expert aggregation
+  - structural change
+  - time-series forecasting
+  - extreme value theory
+  - multi-agent systems
+  - swarm robotics
+  - autonomous vehicles
+
+license: "MIT"
+repository-code: "https://github.com/skimeur/pioneer-detection-method"
+url: "https://github.com/skimeur/pioneer-detection-method"
+doi: "10.1057/s41288-025-00367-y"
+date-released: "2025-11-20"
+version: "0.1.0"
+
+preferred-citation:
+  type: article
+  title: "Insurance supervision under climate change: a pioneer detection method"
+  authors:
+    - family-names: "Vansteenberghe"
+      given-names: "Eric"
+  year: 2025
+  journal: "The Geneva Papers on Risk and Insurance – Issues and Practice"
+  doi: "10.1057/s41288-025-00367-y"
+  url: "https://doi.org/10.1057/s41288-025-00367-y"
