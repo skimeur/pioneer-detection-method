@@ -71,22 +71,42 @@ from pdm import (
 
 # ---------------------------------------------------------------------------
 # 0. Data loading
-#    ecb_hicp_panel_var_granger.py runs API calls and a plot at module level.
-#    We suppress plt.show() during import and discard its figures afterwards.
+#    Default: OFFLINE & DETERMINISTIC — build the panel from the committed CSVs
+#    (data_ecb_hicp_panel.csv = EU HICP YoY; data_ukraine_cpi_raw.csv = SSSU CPI
+#    index -> YoY) so the script reproduces the committed figures/tables exactly
+#    on every run. Set PDM_REFRESH=1 to re-fetch live via the starter module
+#    (the SDMX sources are revised over time, which would shift the numbers).
+#    [instructor improvement applied when merging PR #29]
 # ---------------------------------------------------------------------------
-_old_show = plt.show
-plt.show = lambda: None
+def _load_panel_offline() -> pd.DataFrame:
+    ea = (pd.read_csv(os.path.join(_DIR, "data_ecb_hicp_panel.csv"),
+                      parse_dates=["TIME_PERIOD"]).set_index("TIME_PERIOD").sort_index())
+    raw = pd.read_csv(os.path.join(_DIR, "data_ukraine_cpi_raw.csv"))[["TIME_PERIOD", "OBS_VALUE"]].copy()
+    raw["date"] = pd.to_datetime(raw["TIME_PERIOD"].str.replace("M", "", regex=False),
+                                 format="%Y-%m", errors="coerce")
+    raw = raw.dropna(subset=["date"]).sort_values("date")
+    factor = pd.to_numeric(raw["OBS_VALUE"], errors="coerce") / 100.0
+    ua = ((factor.cumprod() / factor.cumprod().shift(12) - 1.0) * 100.0)
+    ua.index = raw["date"].values
+    out = ea.join(ua.rename("UA"), how="outer").sort_index()
+    out.index.name = "TIME_PERIOD"
+    return out
 
-_spec = importlib.util.spec_from_file_location(
-    "_ecb_starter", os.path.join(_DIR, "ecb_hicp_panel_var_granger.py")
-)
-_ecb_mod = importlib.util.module_from_spec(_spec)
-_spec.loader.exec_module(_ecb_mod)
-
-plt.show = _old_show
-plt.close("all")
-
-infl_panel: pd.DataFrame = _ecb_mod.infl_panel.copy()
+if os.environ.get("PDM_REFRESH") == "1":
+    _old_show = plt.show
+    plt.show = lambda: None
+    _spec = importlib.util.spec_from_file_location(
+        "_ecb_starter", os.path.join(_DIR, "ecb_hicp_panel_var_granger.py"))
+    _ecb_mod = importlib.util.module_from_spec(_spec)
+    _spec.loader.exec_module(_ecb_mod)
+    plt.show = _old_show
+    plt.close("all")
+    infl_panel: pd.DataFrame = _ecb_mod.infl_panel.copy()
+    print("[data] live refresh via ecb_hicp_panel_var_granger.py")
+else:
+    infl_panel = _load_panel_offline()
+    print("[data] offline, deterministic build from committed CSVs "
+          "(set PDM_REFRESH=1 to re-fetch live)")
 
 # Complete-case sample (all 12 series non-missing). NB: the SDMX sources are revised over
 # time, so the exact window and each subperiod's coverage are reported dynamically below.
