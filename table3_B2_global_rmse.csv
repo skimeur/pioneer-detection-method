@@ -1,0 +1,9 @@
+Method,RMSE (full sample)
+PDM-distances,14.2187
+PDM-angles,14.2188
+Granger,14.2263
+Lagged corr.,14.2377
+Linear pooling,14.2382
+Multivar. reg.,14.2479
+Median pooling,14.2582
+Transfer entropy,14.2606
