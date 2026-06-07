@@ -88,10 +88,8 @@ plt.close("all")
 
 infl_panel: pd.DataFrame = _ecb_mod.infl_panel.copy()
 
-# Complete-case sample.
-# Ukraine CPI (SSSU) starts 2006-01 in the cached CSV, so the complete-case
-# window is 2006-01 to 2025-12 (240 months). Subperiod I (nominally 2002-07)
-# therefore covers only 2006-01 to 2007-12 (24 months).
+# Complete-case sample (all 12 series non-missing). NB: the SDMX sources are revised over
+# time, so the exact window and each subperiod's coverage are reported dynamically below.
 panel: pd.DataFrame = infl_panel.dropna().copy()
 
 EU_COLS  = sorted([c for c in panel.columns if c != "UA"])
@@ -100,7 +98,9 @@ panel    = panel[ALL_COLS]
 
 print(f"Panel: {panel.shape[0]} months, {panel.shape[1]} countries  "
       f"({panel.index[0].date()} to {panel.index[-1].date()})")
-print(f"Note: Subperiod I (2002-07) covers 2006-01 to 2007-12 only (24 months)\n")
+_sub1 = panel.loc["2002-01":"2007-12"]
+print(f"Note: complete-case Subperiod I (2002-07) spans {len(_sub1)} months"
+      + (f" ({_sub1.index[0].date()} to {_sub1.index[-1].date()})" if len(_sub1) else "") + "\n")
 
 # ---------------------------------------------------------------------------
 # Subperiod definitions
@@ -195,11 +195,11 @@ _savefig(fig2, "figure2_A1_weights_heatmap.png")
 print("Discussion A.1")
 print("-" * 60)
 print(
-    "25.4% of months yield no detectable pioneer (all weights NaN).\n"
+    f"{100*n_no_pioneer/len(w_angles):.1f}% of months yield no detectable pioneer (all weights NaN).\n"
     "Per Section 3 of the paper, this is not a weakness: the absence\n"
     "of pioneers signals a stable, low-dispersion regime where no agent\n"
     "moves ahead of others in a structurally meaningful direction. The\n"
-    "2006-07 window (the only complete-case months in Subperiod I) falls\n"
+    "early, low-inflation start of the complete-case sample (Subperiod I) falls\n"
     "in the final phase of the Great Moderation, confirming this.\n"
     "\n"
     "Pioneer weight concentrations appear in three episodes (shaded):\n"
@@ -220,7 +220,7 @@ for sp_label, (s, e) in SUBPERIODS.items():
 avg_table  = pd.DataFrame(avg_dict, index=pd.Index(ALL_COLS, name="Country"))
 rank_table = avg_table.rank(axis=0, ascending=False, method="min").astype(int)
 
-print("Table 1 — Average PDM-angles pioneer weight  (Subperiod I: 2006-01 to 2007-12 only)")
+print(f"Table 1 — Average PDM-angles pioneer weight  (complete-case Subperiod I: {len(_sub1)} months)")
 print(avg_table.round(4).to_string())
 print()
 _save_csv(avg_table.round(4), "table1_A2_avg_pioneer_weights.csv")
@@ -257,8 +257,8 @@ print(
     "Rankings shift substantially across subperiods, consistent with the\n"
     "paper's claim that 'pioneership lacks inertia' (Section 3).\n"
     "\n"
-    "GR (Rank 1, I): Greece's credit-fuelled expansion drove above-trend\n"
-    "  inflation in 2006-07, generating an early diverge-then-converge signal.\n"
+    "GR (a top pioneer in Subperiod I): Greece's credit-fuelled expansion drove\n"
+    "  above-trend inflation in the mid-2000s, an early diverge-then-converge signal.\n"
     "\n"
     "UA (Rank 1, II): Ukraine tracked global oil and food prices earlier\n"
     "  and more sharply than EU members after the 2008 GFC; the panel\n"
@@ -460,9 +460,11 @@ _savefig(fig6, "figure6_B2_forecasts_vs_actual.png")
 
 print("Discussion B.2 — Limits of the forecasting interpretation")
 print("-" * 60)
+_rm = list(global_rmse.values()); _best = min(global_rmse, key=global_rmse.get)
 print(
-    "All eight methods produce nearly identical global RMSE (~15.3 pp).\n"
-    "PDM-angles ranks first overall and performs best in Subperiod IV\n"
+    f"All eight methods produce nearly identical global RMSE "
+    f"(~{np.mean(_rm):.1f} pp; range {min(_rm):.2f}-{max(_rm):.2f}).\n"
+    f"{_best} attains the lowest full-sample RMSE (methods are effectively tied); best in Subperiod IV\n"
     "(COVID, 2020-21), where dynamic upweighting of the earliest-moving\n"
     "EU country gives a marginal advantage over static benchmarks.\n"
     "\n"
@@ -480,7 +482,7 @@ print(
     "    domain the method was actually designed for.\n"
     "\n"
     "(2) In-sample evaluation.\n"
-    "    Weights are estimated and evaluated on the same 240-month sample.\n"
+    f"    Weights are estimated and evaluated on the same {panel.shape[0]}-month sample.\n"
     "    No train/test split — the comparison measures fit, not forecast\n"
     "    ability. The paper validates PDM via Monte Carlo with a known\n"
     "    true parameter (Sections 4 and Appendix B), not against an\n"
