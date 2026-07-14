@@ -3,6 +3,7 @@
 [![DOI](https://img.shields.io/badge/DOI-10.1057%2Fs41288--025--00367--y-blue)](https://doi.org/10.1057/s41288-025-00367-y)
 [![arXiv](https://img.shields.io/badge/arXiv-2511.16760-b31b1b.svg)](https://arxiv.org/abs/2511.16760)
 [![SSRN](https://img.shields.io/badge/SSRN-5012810-lightgrey)](https://ssrn.com/abstract=5012810)
+[![PyPI](https://img.shields.io/pypi/v/pioneer-detection)](https://pypi.org/project/pioneer-detection/)
 [![tests](https://github.com/skimeur/pioneer-detection-method/actions/workflows/ci.yml/badge.svg)](https://github.com/skimeur/pioneer-detection-method/actions/workflows/ci.yml)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue.svg)](https://www.python.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
