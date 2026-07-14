@@ -81,5 +81,11 @@ def test_alternative_methods_produce_valid_weights(method, forecasts):
 
 
 def test_backwards_compatible_pdm_shim():
+    import pathlib
+    import sys
+
+    repo_root = str(pathlib.Path(__file__).resolve().parents[1])
+    if repo_root not in sys.path:
+        sys.path.insert(0, repo_root)
     from pdm import compute_pioneer_weights_angles as legacy
     assert legacy is compute_pioneer_weights_angles
