@@ -1,0 +1,3 @@
+# Teaching material should not dominate the repository language statistics
+*.tex linguist-detectable=false
+docs/** linguist-documentation

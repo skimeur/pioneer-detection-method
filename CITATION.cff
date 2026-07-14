@@ -33,8 +33,8 @@ license: "MIT"
 repository-code: "https://github.com/skimeur/pioneer-detection-method"
 url: "https://github.com/skimeur/pioneer-detection-method"
 doi: "10.1057/s41288-025-00367-y"
-date-released: "2025-11-20"
-version: "0.1.0"
+date-released: "2026-07-14"
+version: "1.0.0"
 
 preferred-citation:
   type: article
@@ -42,7 +42,11 @@ preferred-citation:
   authors:
     - family-names: "Vansteenberghe"
       given-names: "Eric"
-  year: 2025
+  year: 2026
   journal: "The Geneva Papers on Risk and Insurance – Issues and Practice"
+  volume: 51
+  issue: 1
+  start: 176
+  end: 207
   doi: "10.1057/s41288-025-00367-y"
   url: "https://doi.org/10.1057/s41288-025-00367-y"

@@ -1,22 +1,26 @@
 # Pioneer Detection Method (PDM)
-*A convergence-based expert-aggregation algorithm for structural change*
+
+[![DOI](https://img.shields.io/badge/DOI-10.1057%2Fs41288--025--00367--y-blue)](https://doi.org/10.1057/s41288-025-00367-y)
+[![arXiv](https://img.shields.io/badge/arXiv-2511.16760-b31b1b.svg)](https://arxiv.org/abs/2511.16760)
+[![SSRN](https://img.shields.io/badge/SSRN-5012810-lightgrey)](https://ssrn.com/abstract=5012810)
+[![tests](https://github.com/skimeur/pioneer-detection-method/actions/workflows/ci.yml/badge.svg)](https://github.com/skimeur/pioneer-detection-method/actions/workflows/ci.yml)
+[![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue.svg)](https://www.python.org)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+*A convergence-based expert-aggregation algorithm for opinion pooling, forecast combination, and collective decision-making under structural change.*
 
 This repository contains the official Python implementation of the **Pioneer Detection Method (PDM)**, the algorithm introduced in:
 
-**Eric Vansteenberghe (2025)**  
-*Insurance Supervision under Climate Change: A Pioneer Detection Method.*  
-*The Geneva Papers on Risk and Insurance – Issues and Practice.*  
+**Eric Vansteenberghe (2026)**  
+*Insurance supervision under climate change: a pioneer detection method.*  
+*The Geneva Papers on Risk and Insurance – Issues and Practice*, 51(1), 176–207.  
 https://doi.org/10.1057/s41288-025-00367-y
 
-Open access versions:
-https://dx.doi.org/10.2139/ssrn.5012810
+Open access versions: [arXiv:2511.16760](https://arxiv.org/abs/2511.16760) · [SSRN 5012810](https://dx.doi.org/10.2139/ssrn.5012810)
 
+![PDM demo: expert estimates after a structural break and cumulative RMSE learning curves](docs/pdm_demo.png)
 
-The repository includes:
-- `pdm.py` – implementation of the methods
-- `pdm_demo.py` – complete synthetic example with plots  
-- `paper.pdf` – full published article  
-- `slides.pdf` – presentation slides summarizing the method  
+*After a structural break in an unobservable Pareto tail parameter, PDM (red) converges toward the truth faster than linear pooling (dotted) — and beats all seven benchmark aggregation methods on RMSE (right panel). Reproduce with `python pdm_demo.py`.*
 
 ---
 
@@ -24,11 +28,11 @@ The repository includes:
 
 The Pioneer Detection Method is an expert‑aggregation algorithm designed for environments characterized by:
 
-- structural change  
-- heterogeneous learning speeds  
-- fat‑tailed or non‑Gaussian risks  
-- fragmented information  
-- unobservable true parameters  
+- structural change and regime shifts
+- heterogeneous learning speeds
+- fat‑tailed or non‑Gaussian risks
+- fragmented information
+- unobservable true parameters
 
 Instead of pooling experts by performance (which is impossible when the true parameter is unknown), PDM detects **directional convergence**:
 
@@ -36,94 +40,92 @@ Instead of pooling experts by performance (which is impossible when the true par
 
 PDM uses three convergence criteria:
 
-- **Distance reduction** – others move closer to the candidate pioneer  
-- **Orientation** – others move toward the pioneer  
-- **Attribution proportion** – how much of the movement comes from peers  
+- **Distance reduction** – others move closer to the candidate pioneer
+- **Orientation** – others move toward the pioneer
+- **Attribution proportion** – how much of the movement comes from peers
 
 The algorithm produces dynamic weights that sum to 1 whenever at least one pioneer exists; otherwise it defaults to the cross‑sectional mean.
 
 ---
 
-## 2. Applications
-
-### 2.1 Insurance Supervision & Climate Risk
-
-Based on yearly aggregate loss data, PDM helps supervisors assess tail‑risk dynamics under climate change. Use cases include:
-
-- tail‑parameter estimation under Pareto‑type risks  
-- monitoring insurability after climate shocks  
-- pooling fragmented expertise across insurers  
-- mitigating uncertainty when reinsurance capacity withdraws  
-
----
-
-### 2.2 Time‑Series Forecasting Under Regime Shifts
-
-PDM improves robustness in:
-
-- macroeconomic forecasting under structural breaks  
-- climate‑sensitive time series  
-- low signal‑to‑noise environments  
-- model uncertainty and forecast combination  
-
-It is suited to settings where the “truth” is never directly observed.
-
----
-
-### 2.3 Multi‑Agent Systems & Robotics
-
-PDM extends naturally to distributed‑sensing systems:
-
-- drone swarms  
-- robotic fleets  
-- underwater autonomous vehicles  
-- coordinated automated‑vehicle systems  
-- sensor networks  
-- decentralized AI agents  
-
-In these systems, PDM can:
-
-- identify early detectors of environmental changes  
-- neutralize agents whose signals push the system in unsafe directions (algorithmically by down‑weighting)  
-- produce stable swarm‑level situational awareness  
-- enhance collective adaptation under partial detection  
-
----
-
-## 3. Contents of the Repository
-
-```
-pdm.py               # Minimal PDM implementation
-pdm_demo.py          # Synthetic demo with plotting
-paper.pdf            # Published article (full text)
-slides.pdf           # Slide deck for presentations
-extended-abstract.md
-```
-
----
-
-## 4. Quick Start
-
-### Install dependencies
+## 2. Installation
 
 ```bash
-pip install pandas numpy matplotlib statsmodels
+pip install pioneer-detection
 ```
 
-`statsmodels` is required for Granger Causality and Multivariate Regression methods. The PDM variants, Lagged Correlation, Transfer Entropy, and traditional benchmarks only need `pandas` and `numpy`.
+Or the latest development version straight from GitHub:
 
-### Using the Pioneer Detection Method
+```bash
+pip install "pioneer-detection[stats] @ git+https://github.com/skimeur/pioneer-detection-method.git"
+```
+
+The core package needs only `pandas` and `numpy`. The `[stats]` extra adds `statsmodels`, required for the Granger Causality and Multivariate Regression benchmark methods; `[demo]` also adds `matplotlib` for the demo plots.
 
 ```python
 import pandas as pd
-from pdm import compute_pioneer_weights_simple, pooled_forecast_simple
+from pioneer_detection import compute_pioneer_weights_angles, pooled_forecast
 
 # forecasts: DataFrame (T x N) of expert forecasts or estimates
-weights = compute_pioneer_weights_simple(forecasts)
-pooled  = pooled_forecast_simple(forecasts, weights)
+weights = compute_pioneer_weights_angles(forecasts)
+pooled  = pooled_forecast(forecasts, weights)
+```
 
-print(weights)
-print(pooled)
+Working from a clone of this repository (as in the course material), `from pdm import ...` keeps working unchanged.
+
+---
+
+## 3. Applications
+
+### 3.1 Insurance Supervision & Climate Risk
+
+Based on yearly aggregate loss data, PDM helps supervisors assess tail‑risk dynamics under climate change. Use cases include:
+
+- tail‑parameter estimation under Pareto‑type risks
+- monitoring insurability after climate shocks
+- pooling fragmented expertise across insurers
+- mitigating uncertainty when reinsurance capacity withdraws
+
+### 3.2 Time‑Series Forecasting Under Regime Shifts
+
+PDM improves robustness in:
+
+- macroeconomic forecasting under structural breaks
+- climate‑sensitive time series
+- low signal‑to‑noise environments
+- model uncertainty and forecast combination
+
+It is suited to settings where the “truth” is never directly observed.
+
+### 3.3 Multi‑Agent Systems & Robotics
+
+PDM extends naturally to distributed‑sensing systems: drone swarms, robotic fleets, underwater autonomous vehicles, coordinated automated‑vehicle systems, sensor networks, and decentralized AI agents.
+
+In these systems, PDM can:
+
+- identify early detectors of environmental changes
+- neutralize agents whose signals push the system in unsafe directions (algorithmically by down‑weighting)
+- produce stable swarm‑level situational awareness
+- enhance collective adaptation under partial detection
+
+---
+
+## 4. Contents of the Repository
+
+```
+pioneer_detection/     # pip-installable package (core implementation)
+pdm.py                 # backwards-compatible import shim (from pdm import ...)
+pdm_demo.py            # synthetic demo with plots (reproduces the figure above)
+tests/                 # unit tests (pytest)
+paper.pdf              # published article (full text)
+slides.pdf             # presentation slides
+extended-abstract.md   # short summary of the paper
+
+# Teaching material (euro-area inflation exercise and exam)
+exercise_pdm_inflation.py / .tex / .pdf
+exam_counterfactual_ukraine_inflation.tex / .pdf
+ecb_hicp_panel_var_granger.py
+data_ecb_hicp_panel.csv, data_ukraine_cpi_raw.csv
 ```
 
 ---
@@ -147,7 +149,7 @@ A complete Bayesian learning benchmark is provided in `pdm_demo.py`.
 Run:
 
 ```bash
-pip install pandas numpy matplotlib statsmodels
+pip install "pioneer-detection[demo]"
 python pdm_demo.py
 ```
 
@@ -155,7 +157,7 @@ python pdm_demo.py
 
 ## 6. Reference Implementation Details
 
-The code in `pdm.py` implements all methods introduced and compared in the published article. Each method returns a `(T x N)` DataFrame of weights (or a pooled Series for median pooling) that can be passed to `pooled_forecast()`.
+The package implements all methods introduced and compared in the published article. Each method returns a `(T x N)` DataFrame of weights (or a pooled Series for median pooling) that can be passed to `pooled_forecast()`.
 
 ### 6.1 PDM Variants
 
@@ -238,7 +240,7 @@ If no pioneer exists at time t (all weights NaN or zero), the pooled forecast fa
 
 ```python
 import pandas as pd
-from pdm import (
+from pioneer_detection import (
     compute_pioneer_weights_angles,
     compute_pioneer_weights_distance,
     compute_granger_weights,
@@ -264,12 +266,27 @@ median_pooled  = compute_median_pooling(forecasts)
 
 ## 7. Citing This Work
 
+If you use this code or the Pioneer Detection Method in your research, please cite the article:
+
+```bibtex
+@article{vansteenberghe2026insurance,
+  title   = {Insurance supervision under climate change: a pioneer detection method},
+  author  = {Vansteenberghe, Eric},
+  journal = {The Geneva Papers on Risk and Insurance -- Issues and Practice},
+  volume  = {51},
+  number  = {1},
+  pages   = {176--207},
+  year    = {2026},
+  publisher = {Palgrave Macmillan},
+  doi     = {10.1057/s41288-025-00367-y}
+}
 ```
-Vansteenberghe, Eric (2025).
-Insurance Supervision under Climate Change: A Pioneer Detection Method.
-The Geneva Papers on Risk and Insurance – Issues and Practice.
-doi:10.1057/s41288-025-00367-y
-```
+
+Plain text:
+
+> Vansteenberghe, Eric. "Insurance supervision under climate change: a pioneer detection method." *The Geneva Papers on Risk and Insurance – Issues and Practice* 51.1 (2026): 176–207.
+
+You can also use GitHub's **“Cite this repository”** button (top right of the repo page), which reads [`CITATION.cff`](CITATION.cff).
 
 ---
 

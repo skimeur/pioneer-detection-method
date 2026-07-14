@@ -1,0 +1,7 @@
+# Core
+pandas>=1.3
+numpy>=1.21
+# Granger causality and multivariate regression methods
+statsmodels>=0.13
+# Demo and exercise plots
+matplotlib>=3.5

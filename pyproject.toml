@@ -1,0 +1,59 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pioneer-detection"
+version = "1.0.0"
+description = "Pioneer Detection Method (PDM): convergence-based expert aggregation and opinion pooling under structural change"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [
+  { name = "Eric Vansteenberghe" },
+]
+keywords = [
+  "opinion pooling",
+  "expert aggregation",
+  "forecast combination",
+  "structural break",
+  "time series",
+  "climate risk",
+  "insurance",
+  "extreme value theory",
+  "multi-agent systems",
+  "econometrics",
+]
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "Intended Audience :: Science/Research",
+  "Intended Audience :: Financial and Insurance Industry",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Scientific/Engineering :: Mathematics",
+  "Topic :: Office/Business :: Financial",
+]
+dependencies = [
+  "pandas>=1.3",
+  "numpy>=1.21",
+]
+
+[project.optional-dependencies]
+stats = ["statsmodels>=0.13"]
+demo = ["matplotlib>=3.5", "statsmodels>=0.13"]
+dev = ["pytest>=7", "statsmodels>=0.13", "matplotlib>=3.5"]
+
+[project.urls]
+Homepage = "https://github.com/skimeur/pioneer-detection-method"
+Repository = "https://github.com/skimeur/pioneer-detection-method"
+"Published article (DOI)" = "https://doi.org/10.1057/s41288-025-00367-y"
+"arXiv preprint" = "https://arxiv.org/abs/2511.16760"
+"SSRN preprint" = "https://ssrn.com/abstract=5012810"
+
+[tool.setuptools]
+packages = ["pioneer_detection"]
