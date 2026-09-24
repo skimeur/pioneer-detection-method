@@ -10,7 +10,7 @@
 
 *A convergence-based expert-aggregation algorithm for opinion pooling, forecast combination, and collective decision-making under structural change.*
 
-This repository contains the official Python implementation of the **Pioneer Detection Method (PDM)**, the algorithm introduced in:
+This repository contains the official Python implementation of the **Pioneer Detection Method (PDM)**, the replication package, the algorithm introduced in:
 
 **Eric Vansteenberghe (2026)**  
 *Insurance supervision under climate change: a pioneer detection method.*  
